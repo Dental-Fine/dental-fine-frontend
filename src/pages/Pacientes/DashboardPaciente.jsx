@@ -1,7 +1,8 @@
-
+import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Activity, FileText } from 'lucide-react';
 
 export const DashboardPaciente = () => {
+  const navigate= useNavigate();
   return (
     <div className="max-w-5xl mx-auto">
       {/* Encabezado */}
@@ -10,7 +11,9 @@ export const DashboardPaciente = () => {
           <h2 className="text-3xl font-bold text-dark">¡Hola, Jesus Guzman!</h2>
           <p className="text-slate-500 mt-1">Bienvenido a tu portal de paciente.</p>
         </div>
-        <button className="bg-primary hover:bg-secondary text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all flex items-center gap-2 cursor-pointer">
+        <button 
+        onClick={() => navigate('/paciente/agendar')}
+        className="bg-primary hover:bg-secondary text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-primary/30 transition-all flex items-center gap-2 cursor-pointer">
           <Calendar size={20} />
           Nueva Cita
         </button>
