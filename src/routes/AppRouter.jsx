@@ -1,22 +1,27 @@
+// src/routes/AppRouter.jsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from '../pages/Auth/Login';
-import MainLayout from '../layouts/MainLayout';
-import Inicio from '../pages/Dashboard/Inicio';
+import Login from '../pages/Auth/Login'; 
+import MainLayout from '../layouts/MainLayout'; 
+import DashboardRecepcion from '../pages/Dashboard/DashboardRecepcion';
+import Citas from '../pages/Dashboard/Citas'; 
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Si van a /login, muestra el formulario */}
+        {/* Pantalla de acceso */}
         <Route path="/login" element={<Login />} />
-
-        {/* Si van a /dashboard muestra el MainLayout */}
+        
+        {/* Estructura principal del Dashboard */}
         <Route path="/dashboard" element={<MainLayout />}>
-          {/* Y por defecto, dentro del hueco del marco, muestra la pantalla de Inicio */}
-          <Route index element={<Inicio />} />
+          {/* Vista inicial: Recepción */}
+          <Route index element={<DashboardRecepcion />} />
+          
+          {/* 2. Re-habilitamos la ruta de Citas */}
+          <Route path="citas" element={<Citas />} /> 
         </Route>
 
-        {/* Si escriben cualquier otra cosa, regresa al login por seguridad */}
+        {/* Redirección por defecto */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
