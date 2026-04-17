@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Clock, UserCheck, XCircle, ChevronRight, Activity } from 'lucide-react';
+import ModalCita from '../../components/Modales/ModalCita';
 
 export default function DashboardRecepcion() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   // Mock basado en el script SQL (Citas JOIN Pacientes JOIN Usuarios)
   const metricas = { total: 15, atendidas: 4, canceladas: 1, enEspera: 10 };
   
@@ -32,7 +35,10 @@ export default function DashboardRecepcion() {
             <Clock size={16} /> Hoy es 16 de Abril, 2026
           </p>
         </div>
-        <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-medium transition-all shadow-lg shadow-indigo-600/20 hover:scale-105">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-medium transition-all shadow-lg shadow-indigo-600/20 hover:scale-105"
+        >
           + Nueva Cita Rápida
         </button>
       </div>
@@ -86,6 +92,10 @@ export default function DashboardRecepcion() {
                   <ChevronRight size={20} />
                 </button>
               </div>
+              <ModalCita 
+              isOpen={isModalOpen} 
+              onClose={() => setIsModalOpen(false)} 
+              />
             </div>
           ))}
         </div>
