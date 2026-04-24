@@ -5,8 +5,16 @@ import {
   Map, AlertTriangle, CheckCircle2 
 } from 'lucide-react';
 
-export const DetalleCitaModal = ({ cita, isOpen, onClose }) => {
+export const DetalleCitaModal = ({ cita, isOpen, onClose, onCancelar }) => {
+
   if (!isOpen || !cita) return null;
+  const fechaCita = new Date(cita?.fechaOriginal);
+  const fechaActual = new Date();
+  
+  const esCancelable = 
+    cita?.estado !== 'ATENDIDA' && 
+    cita?.estado !== 'CANCELADA' && 
+    fechaCita > fechaActual; // Solo si la cita es en el futuro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -78,10 +86,10 @@ export const DetalleCitaModal = ({ cita, isOpen, onClose }) => {
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Ubicación de la Clínica</label>
               <div className="space-y-2">
                 <p className="text-sm font-bold text-dark flex items-center gap-2">
-                  <MapPin size={16} className="text-primary" /> Sucursal León Central
+                  <MapPin size={16} className="text-primary" /> {cita?.clinica || 'Clínica no especificada'}
                 </p>
                 <p className="text-xs text-slate-500 pl-6 leading-relaxed">
-                  Paseo de los Insurgentes #120, Jardines del Moral. C.P. 37160.
+                  {cita?.ubicacion || 'Dirección no disponible'}
                 </p>
                 <button className="text-xs font-black text-primary pl-6 flex items-center gap-1 hover:underline cursor-pointer">
                   <Map size={14} /> Ver en Google Maps
@@ -107,9 +115,13 @@ export const DetalleCitaModal = ({ cita, isOpen, onClose }) => {
             <Download size={18} /> Descargar Recordatorio
           </button>
           
-          {cita.estado === 'Pendiente' && (
-            <button className="flex-1 bg-red-50 text-red-600 py-3.5 rounded-2xl font-black text-sm hover:bg-red-100 transition-colors cursor-pointer">
-              Cancelar Cita
+          {/* Solo mostramos el botón si cumple las reglas (no es del pasado y no está cancelada/atendida) */}
+          {esCancelable && (
+            <button 
+              onClick={() => onCancelar(cita.id)} // <--- AQUÍ conectamos la acción
+              className="flex-1 bg-red-50 text-red-600 border border-red-100 py-3.5 rounded-2xl font-black text-sm hover:bg-red-100 hover:text-red-700 transition-all cursor-pointer flex justify-center items-center gap-2"
+            >
+              <X size={18} /> Cancelar Cita
             </button>
           )}
           
@@ -119,6 +131,7 @@ export const DetalleCitaModal = ({ cita, isOpen, onClose }) => {
           >
             Aceptar
           </button>
+          
         </div>
       </div>
     </div>

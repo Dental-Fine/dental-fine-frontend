@@ -1,29 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User, Mail, Phone, MapPin, Calendar, 
   Lock, Camera, ShieldCheck, Globe 
 } from 'lucide-react';
 
 export const PerfilPaciente = () => {
-  // Simulación de datos provenientes de tu tabla 'Pacientes'
+  // Inicializamos con los datos estáticos que pusiste
   const [perfil, setPerfil] = useState({
-    nombre: "Alejandro",
-    apellidos: "Pérez García",
-    correo: "alejandro.perez@email.com",
-    telefono: "477 123 4567",
-    fechaNacimiento: "1992-05-15",
-    genero: "Masculino",
-    calle: "Paseo de los Insurgentes",
-    noExterior: "120",
-    colonia: "Jardines del Moral",
-    cp: "37160",
-    ciudad: "León",
-    estado: "Guanajuato",
-    fechaRegistro: "2023-10-12"
+    nombre: "Cargando...",
+    apellidos: "",
+    correo: "correo@ejemplo.com",
+    telefono: "Sin registrar",
+    fechaNacimiento: "1995-05-20", // Dato estático
+    genero: "Masculino", // Dato estático
+    calle: "Paseo de los Insurgentes", // Dato estático
+    noExterior: "120", // Dato estático
+    colonia: "Jardines del Moral", // Dato estático
+    cp: "37160", // Dato estático
+    ciudad: "León", // Dato estático
+    estado: "Guanajuato", // Dato estático
+    fechaRegistro: "2024-01-01" // Dato estático
   });
 
+  // Efecto para jalar los datos reales al cargar la página
+  useEffect(() => {
+    const usuarioGuardado = localStorage.getItem('usuario_dental_fine');
+    if (usuarioGuardado) {
+      const datosReales = JSON.parse(usuarioGuardado);
+      
+      // Actualizamos el perfil combinando lo estático con lo real que tenemos
+      setPerfil(prev => ({
+        ...prev,
+        // Si el nombre en el mock tiene "Richy Salgado", tratamos de separarlo
+        nombre: datosReales.nombre ? datosReales.nombre.split(' ')[0] : 'Alejandro',
+        apellidos: datosReales.nombre && datosReales.nombre.split(' ').length > 1 
+                   ? datosReales.nombre.split(' ').slice(1).join(' ') 
+                   : 'Pérez',
+        correo: "richysalgado123@gmail.com", // El que insertaste en SQL
+        telefono: "5512345678" // El que insertaste en SQL
+      }));
+    }
+  }, []);
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 mt-8">
       
       {/* HEADER: Perfil Visual */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -33,7 +53,6 @@ export const PerfilPaciente = () => {
             <div className="relative">
               <div className="h-32 w-32 rounded-2xl border-4 border-white bg-slate-100 flex items-center justify-center overflow-hidden shadow-md">
                 <User size={64} className="text-slate-300" />
-                {/* En un futuro aquí iría el 'BYTEA' de la imagen transformado a URL */}
               </div>
               <button className="absolute bottom-2 right-2 p-2 bg-white rounded-lg shadow-sm border border-slate-200 text-primary hover:bg-slate-50 transition-colors cursor-pointer">
                 <Camera size={18} />
@@ -67,7 +86,7 @@ export const PerfilPaciente = () => {
               Cambiar Contraseña
             </button>
             <p className="text-[10px] text-slate-400 text-center uppercase font-bold tracking-widest">
-              Último acceso: Ayer, 18:45
+              Último acceso: Hoy, 10:45
             </p>
           </div>
 
@@ -75,7 +94,7 @@ export const PerfilPaciente = () => {
             <h3 className="font-black text-primary flex items-center gap-2 mb-2 text-sm">
               <Globe size={18} /> Mi Clínica
             </h3>
-            <p className="text-dark font-bold">Dental Fine - Sucursal León</p>
+            <p className="text-dark font-bold">Dental Fine - Central</p>
             <p className="text-xs text-slate-500 mt-1">Zona Horaria: UTC-6</p>
           </div>
         </div>
@@ -87,32 +106,32 @@ export const PerfilPaciente = () => {
               Información del Paciente
             </h3>
             
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
               {/* Grid de inputs */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Nombre(s)</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                    <input type="text" defaultValue={perfil.nombre} className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium" />
+                    <input type="text" value={perfil.nombre} readOnly className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-slate-700" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Apellidos</label>
-                  <input type="text" defaultValue={perfil.apellidos} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium" />
+                  <input type="text" value={perfil.apellidos} readOnly className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-slate-700" />
                 </div>
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Correo Electrónico</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                    <input type="email" defaultValue={perfil.correo} className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium" />
+                    <input type="email" value={perfil.correo} readOnly className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-slate-700" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Teléfono Principal</label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                    <input type="text" defaultValue={perfil.telefono} className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium" />
+                    <input type="text" value={perfil.telefono} readOnly className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-medium text-slate-700" />
                   </div>
                 </div>
               </div>
@@ -145,7 +164,7 @@ export const PerfilPaciente = () => {
               </div>
 
               <div className="pt-6 border-t border-slate-100 flex justify-end">
-                <button type="button" className="bg-primary hover:bg-secondary text-white px-10 py-3 rounded-xl font-black shadow-lg shadow-primary/30 transition-all cursor-pointer">
+                <button type="button" className="bg-primary hover:bg-secondary text-white px-10 py-3 rounded-xl font-black shadow-lg shadow-primary/30 transition-all cursor-pointer opacity-50">
                   Guardar Cambios
                 </button>
               </div>

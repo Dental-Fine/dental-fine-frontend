@@ -1,14 +1,33 @@
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Activity, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 
 export const DashboardPaciente = () => {
   const navigate= useNavigate();
+  const [usuario, setUsuario] = useState({ nombre: 'Paciente' });
+
+  // 2. Al cargar la página, buscamos en el localStorage
+  useEffect(() => {
+    const usuarioGuardado = localStorage.getItem('usuario_dental_fine');
+    if (usuarioGuardado) {
+      setUsuario(JSON.parse(usuarioGuardado));
+    }
+  }, []);
+
+  // 3. Extraemos las iniciales para el avatar (Ej: Richy Salgado -> RS)
+  const obtenerIniciales = (nombreCompleto) => {
+    const nombres = nombreCompleto.split(' ');
+    if (nombres.length > 1) {
+      return nombres[0][0] + nombres[1][0];
+    }
+    return nombres[0][0];
+  };
   return (
     <div className="max-w-5xl mx-auto">
       {/* Encabezado */}
       <div className="mb-8 flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold text-dark">¡Hola, Jesus Guzman!</h2>
+          <h2 className="text-3xl font-bold text-dark">¡Hola, {usuario.nombre}!</h2>
           <p className="text-slate-500 mt-1">Bienvenido a tu portal de paciente.</p>
         </div>
         <button 
