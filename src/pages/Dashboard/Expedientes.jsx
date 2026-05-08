@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, User, ChevronRight, Filter, Check, XCircle } from 'lucide-react';
+import { Search, User, ChevronRight, Filter, Check, XCircle, Loader2 } from 'lucide-react';
+import { ApiService } from '../../services/api.js'; 
 
 export default function Expedientes() {
   const navigate = useNavigate();
@@ -9,9 +10,13 @@ export default function Expedientes() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('Todos');
   const [mostrarMenuFiltros, setMostrarMenuFiltros] = useState(false);
+  
+  // --- ESTADOS PARA LA BASE DE DATOS ---
+  const [pacientesReales, setPacientesReales] = useState([]);
+  const [cargando, setCargando] = useState(false);
 
-  // Mock de pacientes (Datos simulados)
-  const pacientes = [
+  // Mock de pacientes (Para mostrar cuando la barra está vacía)
+  const pacientesMock = [
     { id: 101, nombre: 'Valeria García', ultimaVisita: '16 Abr 2026', estado: 'En Tratamiento' },
     { id: 102, nombre: 'Carlos Rodríguez', ultimaVisita: '10 Abr 2026', estado: 'Alta' },
     { id: 103, nombre: 'Ana Martínez', ultimaVisita: '05 Abr 2026', estado: 'Urgencia' },
@@ -19,19 +24,55 @@ export default function Expedientes() {
     { id: 105, nombre: 'Luis Fernando', ultimaVisita: '20 Mar 2026', estado: 'En Tratamiento' },
   ];
 
-  // Extraemos dinámicamente los estados únicos que existen en nuestra base de datos
-  const estadosDisponibles = ['Todos', ...new Set(pacientes.map(p => p.estado))];
+  // --- EFECTO DE BÚSQUEDA REAL (Conectado al Backend) ---
+  useEffect(() => {
+    // Si la barra está vacía, no buscamos en el backend
+    if (busqueda.trim() === '') {
+      setPacientesReales([]);
+      return;
+    }
+
+    const buscarEnBaseDeDatos = async () => {
+      setCargando(true);
+      try {
+        const resultados = await ApiService.buscarPacientes(busqueda);
+        
+        // Transformamos la respuesta de Java para que encaje con nuestro diseño
+        const pacientesMapeados = resultados.map(p => ({
+          id: p.idPaciente,
+          nombre: `${p.nombre} ${p.apellidos}`.trim(), 
+          estado: 'Registrado', // Temporal hasta que Kevin agregue los estados médicos
+          ultimaVisita: p.telefono || 'Sin teléfono' 
+        }));
+        
+        setPacientesReales(pacientesMapeados);
+      } catch (error) {
+        console.error("Fallo al buscar en la base de datos:", error);
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    // Debounce: Espera 400ms después de teclear para no saturar el servidor
+    const delayBuscador = setTimeout(() => {
+      buscarEnBaseDeDatos();
+    }, 400);
+
+    return () => clearTimeout(delayBuscador);
+  }, [busqueda]);
 
   // --- LÓGICA DEL CEREBRO (Filtrado Combinado) ---
-  const pacientesFiltrados = pacientes.filter((p) => {
-    // 1. ¿Coincide con lo que escribió el usuario en la barra? (Busca por nombre o ID)
-    const coincideTexto = p.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
-                          p.id.toString().includes(busqueda);
-    
-    // 2. ¿Coincide con el estado seleccionado en el menú?
-    const coincideEstado = filtroEstado === 'Todos' || p.estado === filtroEstado;
+  // Decidimos qué lista usar: Si hay texto buscamos en los reales, si no, mostramos los mocks
+  const listaBase = busqueda.trim() === '' ? pacientesMock : pacientesReales;
+  
+  // Extraemos dinámicamente los estados únicos que existen en la lista que estemos viendo
+  const estadosDisponibles = ['Todos', ...new Set(listaBase.map(p => p.estado))];
 
-    // Solo mostramos el paciente si cumple ambas condiciones
+  const pacientesFiltrados = listaBase.filter((p) => {
+    const coincideTexto = busqueda === '' || 
+                          p.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+                          p.id.toString().includes(busqueda);
+    const coincideEstado = filtroEstado === 'Todos' || p.estado === filtroEstado;
     return coincideTexto && coincideEstado;
   });
 
@@ -52,11 +93,14 @@ export default function Expedientes() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
           <input 
             type="text" 
-            placeholder="Buscar por nombre de paciente o ID..."
+            placeholder="Buscar por nombre de paciente o ID en la base de datos..."
             className="w-full pl-12 pr-4 py-3 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-600/20 transition-all outline-none text-slate-700 font-medium placeholder:font-normal"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
+          {cargando && (
+            <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-600 animate-spin" size={18} />
+          )}
         </div>
 
         {/* Botón y Menú Desplegable de Filtros */}
@@ -87,7 +131,7 @@ export default function Expedientes() {
                     key={estado}
                     onClick={() => {
                       setFiltroEstado(estado);
-                      setMostrarMenuFiltros(false); // Cerramos el menú al elegir
+                      setMostrarMenuFiltros(false);
                     }}
                     className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                       filtroEstado === estado 
@@ -106,8 +150,13 @@ export default function Expedientes() {
       </div>
 
       {/* --- GRID DE RESULTADOS --- */}
-      {pacientesFiltrados.length === 0 ? (
-        // Estado Vacío (Si no hay resultados en la búsqueda)
+      {cargando ? (
+        <div className="bg-white border border-slate-100 rounded-[32px] p-20 text-center shadow-sm flex flex-col items-center justify-center">
+          <Loader2 size={40} className="text-indigo-600 animate-spin mb-4" />
+          <h3 className="text-lg font-bold text-slate-900">Buscando en la base de datos...</h3>
+        </div>
+      ) : pacientesFiltrados.length === 0 ? (
+        // Estado Vacío (Si no hay resultados)
         <div className="bg-white border border-slate-100 rounded-[32px] p-12 text-center shadow-sm flex flex-col items-center justify-center">
           <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
             <XCircle size={32} className="text-slate-300" />
@@ -118,7 +167,7 @@ export default function Expedientes() {
             onClick={() => { setBusqueda(''); setFiltroEstado('Todos'); }}
             className="mt-6 text-indigo-600 font-bold hover:text-indigo-700 transition-colors"
           >
-            Limpiar filtros
+            Limpiar búsqueda
           </button>
         </div>
       ) : (
@@ -142,13 +191,14 @@ export default function Expedientes() {
               <div className="space-y-2 border-t border-slate-50 pt-4">
                 <div className="flex justify-between text-xs items-center">
                   <span className="text-slate-400 font-medium">Última visita:</span>
-                  <span className="text-slate-700 font-bold">{p.ultimaVisita}</span>
+                  <span className="text-slate-700 font-bold truncate max-w-[100px] text-right">{p.ultimaVisita}</span>
                 </div>
                 <div className="flex justify-between text-xs items-center">
                   <span className="text-slate-400 font-medium">Estado:</span>
                   <span className={`font-extrabold px-2 py-0.5 rounded-md ${
                     p.estado === 'Urgencia' ? 'bg-red-50 text-red-600' : 
                     p.estado === 'Alta' ? 'bg-emerald-50 text-emerald-600' : 
+                    p.estado === 'Registrado' ? 'bg-amber-50 text-amber-600' :
                     'bg-indigo-50 text-indigo-600'
                   }`}>
                     {p.estado}

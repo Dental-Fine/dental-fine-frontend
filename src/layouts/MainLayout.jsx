@@ -1,14 +1,24 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { CalendarDays, ClipboardList, WalletCards, LogOut } from 'lucide-react';
 
 export default function MainLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = [
     { path: '/dashboard', label: 'Recepción y Agenda', icon: CalendarDays },
     { path: '/dashboard/expedientes', label: 'Expediente Médico', icon: ClipboardList },
     { path: '/dashboard/pagos', label: 'Caja y Pagos', icon: WalletCards },
   ];
+
+  const handleCerrarSesion = () => {
+    // 1. Limpiamos cualquier rastro del usuario en la memoria del navegador
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+    
+    // 2. Lo mandamos expulsado a la pantalla de Login
+    navigate('/');
+  };
 
   return (
     <div className="flex h-screen bg-slate-50 p-4 gap-4 font-sans">
@@ -37,7 +47,10 @@ export default function MainLayout() {
         </nav>
 
         <div className="p-4">
-          <button className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all">
+          <button 
+            onClick={handleCerrarSesion}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all"
+          >
             <LogOut size={20} /> Cerrar Sesión
           </button>
         </div>

@@ -5,8 +5,7 @@ import MainLayout from '../layouts/MainLayout';
 import DashboardRecepcion from '../pages/Dashboard/DashboardRecepcion';
 import Expedientes from '../pages/Dashboard/Expedientes';
 import ExpedienteDetalle from '../pages/Dashboard/ExpedienteDetalle';
-
-// import Pagos from '../pages/Dashboard/Pagos';
+import Pagos from '../pages/Dashboard/Pagos';
 
 export default function AppRouter() {
   return (
@@ -25,7 +24,7 @@ export default function AppRouter() {
           <Route path="expediente/:id" element={<ExpedienteDetalle />} /> 
           
           {/* Vista de Pagos (Comentada temporalmente) */}
-          {/* <Route path="pagos" element={<Pagos />} /> */}
+           <Route path="pagos" element={<Pagos />} /> 
         </Route>
 
         {/* Redirección por defecto */}
