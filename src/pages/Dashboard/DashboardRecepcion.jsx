@@ -1,24 +1,56 @@
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, Calendar as CalendarIcon, Clock, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Plus, Edit2, AlertCircle, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import ModalCita from '../../components/Modales/ModalCita';
+import { ApiService } from '../../services/api'; // Conectamos con el backend
 
 export default function DashboardRecepcion() {
-  // --- LÓGICA DE FECHAS ---
   const hoy = new Date();
-  const [fechaActual, setFechaActual] = useState(new Date(2026, 3, 1)); // Abril 2026 para pruebas
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(new Date(2026, 3, 16)); 
+  const [fechaActual, setFechaActual] = useState(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); 
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(hoy); 
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [citaEditando, setCitaEditando] = useState(null);
+  
+  // Estados para la Base de Datos
+  const [citas, setCitas] = useState([]);
+  const [cargando, setCargando] = useState(true);
 
-  // Mock de datos (Simulando la BD Citas)
-  const [citas, setCitas] = useState([
-    { id_cita: 1, fecha: '2026-04-16', hora: '09:00', paciente: 'Valeria G.', doctor: 'Dr. López', estado: 'Atendida' },
-    { id_cita: 2, fecha: '2026-04-16', hora: '10:30', paciente: 'Carlos R.', doctor: 'Dra. Martínez', estado: 'Pendiente' },
-    { id_cita: 3, fecha: '2026-04-18', hora: '12:30', paciente: 'Jorge P.', doctor: 'Dra. Martínez', estado: 'Cancelada' },
-  ]);
+  // --- EFECTO: TRAER CITAS DEL BACKEND ---
+  const cargarCitas = async () => {
+    setCargando(true);
+    try {
+      const datosBackend = await ApiService.obtenerCitas();
+      
+      // Mapeamos los datos de Java (CitaResumenDTO) a nuestro formato de React
+      const citasFormateadas = datosBackend.map(cita => {
+        // Separamos la fecha y la hora que viene junta (ej: "2026-04-16T09:00:00")
+        const [soloFecha, soloHora] = cita.fecha.split('T'); 
+        
+        return {
+          id_cita: cita.id,
+          fecha: soloFecha,
+          hora: soloHora.substring(0, 5), // Tomamos solo "HH:MM"
+          paciente: cita.nombrePaciente || 'Paciente', 
+          doctor: cita.nombreDentista || 'Dentista',
+          estado: cita.estado
+        };
+      });
+      
+      setCitas(citasFormateadas);
+    } catch (error) {
+      console.error("No se pudieron cargar las citas reales, usando datos vacíos.");
+      setCitas([]); // Si falla, dejamos el calendario limpio
+    } finally {
+      setCargando(false);
+    }
+  };
 
-  // Generar calendario
+  // Se ejecuta al cargar la pantalla y cuando cerramos el modal (para refrescar)
+  useEffect(() => {
+    cargarCitas();
+  }, [isModalOpen]); 
+
+  // --- LÓGICA DE CALENDARIO ---
   const diasMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + 1, 0).getDate();
   const primerDiaMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1).getDay();
   const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -60,8 +92,8 @@ export default function DashboardRecepcion() {
               const dia = i + 1;
               const fStr = formatearFecha(dia);
               const isSel = fechaSeleccionada.getDate() === dia && fechaSeleccionada.getMonth() === fechaActual.getMonth();
-              const tieneCitas = citas.some(c => c.fecha === fStr && c.estado !== 'Cancelada');
-              const tieneCanceladas = citas.some(c => c.fecha === fStr && c.estado === 'Cancelada');
+              const tieneCitas = citas.some(c => c.fecha === fStr && c.estado !== 'CANCELADA');
+              const tieneCanceladas = citas.some(c => c.fecha === fStr && c.estado === 'CANCELADA');
 
               return (
                 <button key={dia} onClick={() => setFechaSeleccionada(new Date(fechaActual.getFullYear(), fechaActual.getMonth(), dia))}
@@ -85,7 +117,12 @@ export default function DashboardRecepcion() {
             </h3>
           </div>
           <div className="flex-1 overflow-auto p-6">
-            {citasDelDia.length > 0 ? (
+            {cargando ? (
+              <div className="h-full flex flex-col items-center justify-center text-indigo-600 py-12">
+                <Loader2 size={40} className="animate-spin mb-4" />
+                <p className="font-bold">Sincronizando con la clínica...</p>
+              </div>
+            ) : citasDelDia.length > 0 ? (
               <div className="space-y-4">
                 {citasDelDia.map(c => (
                   <div key={c.id_cita} className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-indigo-100 transition-all group">
@@ -97,7 +134,7 @@ export default function DashboardRecepcion() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${c.estado === 'Cancelada' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${c.estado === 'CANCELADA' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
                         {c.estado}
                       </span>
                       <button onClick={() => { setCitaEditando(c); setIsModalOpen(true); }} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><Edit2 size={16}/></button>
@@ -108,7 +145,7 @@ export default function DashboardRecepcion() {
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-slate-400 py-12">
                 <AlertCircle size={40} className="mb-2 opacity-20" />
-                <p className="text-sm italic">No hay actividad registrada para este día.</p>
+                <p className="text-sm italic">No hay citas registradas para este día.</p>
               </div>
             )}
           </div>

@@ -64,5 +64,41 @@ export const ApiService = {
       console.error("Error agendando cita:", error);
       throw error;
     }
+  },
+  // 3. OBTENER TODAS LAS CITAS (¡NUEVO!)
+  obtenerCitas: async () => {
+    try {
+      const response = await fetch(`${API_URL}/citas`);
+      return await response.json();
+    } catch (error) {
+      console.error("Error obteniendo citas:", error);
+      return [];
+    }
+  },
+
+  // 4. CONSULTAR DISPONIBILIDAD (Corregimos la URL quitando el /api)
+  consultarDisponibilidad: async (dentistaId, fecha) => {
+    try {
+      const response = await fetch(`${API_URL}/citas/disponibilidad?dentistaId=${dentistaId}&fecha=${fecha}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Error consultando disponibilidad:", error);
+      throw error;
+    }
+  },
+
+  // 5. AGENDAR CITA (Corregimos la URL quitando el /api)
+  agendarCita: async (pacienteId, dentistaId, tipoServicioId, fechaHora) => {
+    try {
+      const response = await fetch(`${API_URL}/citas/agendar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pacienteId, dentistaId, tipoServicioId, fechaHora })
+      });
+      return await response.json();
+    } catch (error) {
+      console.error("Error agendando cita:", error);
+      throw error;
+    }
   }
 };
