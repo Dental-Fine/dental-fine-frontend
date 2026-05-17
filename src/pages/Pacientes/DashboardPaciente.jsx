@@ -4,7 +4,21 @@ import React, { useState, useEffect } from 'react';
 
 export const DashboardPaciente = () => {
   const navigate= useNavigate();
-  const [usuario, setUsuario] = useState({ nombre: 'Paciente' });
+  const [usuario, setUsuario] = useState({ id: null, nombre: 'Paciente' });
+
+  // 1. Estado para el resumen del dashboard preparado para recibir datos reales
+  const [resumen, setResumen] = useState({
+    proximaCita: {
+      fecha: "12 Octubre, 2026",
+      tratamiento: "Limpieza General",
+      hora: "10:30 AM",
+      ubicacion: "Consultorio 2"
+    },
+    tratamientosActivos: {
+      cantidad: 1,
+      detalle: "Ortodoncia"
+    }
+  });
 
   // 2. Al cargar la página, buscamos en el localStorage
   useEffect(() => {
@@ -14,14 +28,22 @@ export const DashboardPaciente = () => {
     }
   }, []);
 
-  // 3. Extraemos las iniciales para el avatar (Ej: Richy Salgado -> RS)
-  const obtenerIniciales = (nombreCompleto) => {
-    const nombres = nombreCompleto.split(' ');
-    if (nombres.length > 1) {
-      return nombres[0][0] + nombres[1][0];
-    }
-    return nombres[0][0];
-  };
+  // 3. (OPCIONAL) Código preparado para cuando el backend tenga el endpoint de resumen:
+  /*
+  useEffect(() => {
+    const cargarResumen = async () => {
+      if (!usuario.id) return;
+      try {
+        const respuesta = await api.get(`/pacientes/${usuario.id}/resumen`);
+        setResumen(respuesta.data);
+      } catch (err) {
+        console.error("Error cargando resumen:", err);
+      }
+    };
+    cargarResumen();
+  }, [usuario.id]);
+  */
+
   return (
     <div className="max-w-5xl mx-auto">
       {/* Encabezado */}
@@ -38,38 +60,42 @@ export const DashboardPaciente = () => {
         </button>
       </div>
 
-      {/* Tarjetas de Resumen (Cards) */}
+      {/* Tarjetas de Resumen (Cards) dinámicas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        
+        {/* Card: Próxima Cita */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4 transition-transform hover:-translate-y-1 hover:shadow-md">
           <div className="bg-blue-100 p-3 rounded-lg text-primary">
             <Calendar size={24} />
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Próxima Cita</p>
-            <p className="text-lg font-bold text-dark mt-1">12 Octubre, 2026</p>
-            <p className="text-sm text-primary font-medium mt-1">Limpieza General</p>
+            <p className="text-lg font-bold text-dark mt-1">{resumen.proximaCita.fecha}</p>
+            <p className="text-sm text-primary font-medium mt-1">{resumen.proximaCita.tratamiento}</p>
           </div>
         </div>
 
+        {/* Card: Hora y Ubicación */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4 transition-transform hover:-translate-y-1 hover:shadow-md">
           <div className="bg-green-100 p-3 rounded-lg text-green-600">
             <Clock size={24} />
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Hora</p>
-            <p className="text-lg font-bold text-dark mt-1">10:30 AM</p>
-            <p className="text-sm text-slate-400 mt-1">Consultorio 2</p>
+            <p className="text-lg font-bold text-dark mt-1">{resumen.proximaCita.hora}</p>
+            <p className="text-sm text-slate-400 mt-1">{resumen.proximaCita.ubicacion}</p>
           </div>
         </div>
 
+        {/* Card: Tratamientos */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4 transition-transform hover:-translate-y-1 hover:shadow-md">
           <div className="bg-purple-100 p-3 rounded-lg text-purple-600">
             <Activity size={24} />
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Tratamientos Activos</p>
-            <p className="text-lg font-bold text-dark mt-1">1 en curso</p>
-            <p className="text-sm text-slate-400 mt-1">Ortodoncia</p>
+            <p className="text-lg font-bold text-dark mt-1">{resumen.tratamientosActivos.cantidad} en curso</p>
+            <p className="text-sm text-slate-400 mt-1">{resumen.tratamientosActivos.detalle}</p>
           </div>
         </div>
       </div>

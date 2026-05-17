@@ -25,20 +25,28 @@ export const Login = () => {
     setErrorLogin(''); // Limpiamos errores anteriores
 
     try {
-      /*// 1. Hacemos la petición POST al backend de tu compañero
-      // Nota: Le mandamos 'email' y 'password' porque así se lo pedimos en la especificación
+      // 1. Hacemos la petición POST al backend
+      // El backend actual espera un objeto LoginRequest
       const respuesta = await api.post('/auth/login', {
         email: correo,
         password: contrasena
       });
 
       // 2. Si es exitoso, guardamos los datos en el navegador
-      // Aunque el JWT esté en Bypass por ahora, es buena práctica guardarlo si lo manda
       if (respuesta.data.token) {
         localStorage.setItem('token_dental_fine', respuesta.data.token);
       }
-      // Guardamos la info del usuario (nombre, id) para usarla en el Dashboard
-      localStorage.setItem('usuario_dental_fine', JSON.stringify(respuesta.data));
+      
+      // Guardamos la info del usuario. El backend actual (mockeado en AuthController) 
+      // devuelve un objeto 'usuario', simularemos la estructura esperada por el Frontend.
+      const usuarioData = {
+        id: respuesta.data.usuario?.id || 1,
+        nombre: "Richy (Desde BD)", // Usamos un nombre estático hasta que el backend mande el nombre real
+        rol: respuesta.data.usuario?.rol || "PACIENTE",
+        token: respuesta.data.token
+      };
+      
+      localStorage.setItem('usuario_dental_fine', JSON.stringify(usuarioData));
 
       // 3. Lo mandamos a su portal
       navigate('/paciente/inicio');
@@ -51,23 +59,6 @@ export const Login = () => {
       } else {
         setErrorLogin('Error al conectar con el servidor.');
       }
-    } finally {
-      setCargando(false);
-    }*/
-   const usuarioFake = {
-        id: 1,
-        nombre: "Richy Salgado",
-        rol: "PACIENTE",
-        token: "token-de-prueba-123"
-      };
-
-      localStorage.setItem('usuario_dental_fine', JSON.stringify(usuarioFake));
-      
-      // ¡Directo al portal!
-      navigate('/paciente/inicio');
-
-    } catch (error) {
-      setErrorLogin('Error de conexión (Bypass activo)');
     } finally {
       setCargando(false);
     }

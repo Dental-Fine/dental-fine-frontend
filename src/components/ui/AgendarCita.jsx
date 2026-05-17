@@ -23,17 +23,27 @@ export const AgendarCita = () => {
     hora: ''
   });
 
-  // Mocks para los IDs (Ya que el backend no tiene endpoints para listar esto)
-  const servicios = [
-    { id: 1, nombre: "Limpieza Dental", precio: 550 },
-    { id: 2, nombre: "Extracción", precio: 800 },
-    { id: 3, nombre: "Resina", precio: 600 }
-  ];
-  
-  const dentistas = [
-    { id: 1, nombre: "Dr. Chapatin" },
-    { id: 2, nombre: "Dra. Elena Solís" }
-  ];
+  // Estados para los catálogos dinámicos desde el Backend
+  const [servicios, setServicios] = useState([]);
+  const [dentistas, setDentistas] = useState([]);
+
+  // Cargar catálogos al montar el componente
+  useEffect(() => {
+    const cargarCatalogos = async () => {
+      try {
+        const [resServicios, resDentistas] = await Promise.all([
+          api.get('/servicios'),
+          api.get('/dentistas')
+        ]);
+        setServicios(resServicios.data);
+        setDentistas(resDentistas.data);
+      } catch (err) {
+        console.error("Error al cargar catálogos:", err);
+        setError('No se pudieron cargar los datos iniciales de la clínica. Verifica la conexión.');
+      }
+    };
+    cargarCatalogos();
+  }, []);
 
   // Estado para guardar las horas que devuelve el Backend
   const [horasDisponibles, setHorasDisponibles] = useState([]);

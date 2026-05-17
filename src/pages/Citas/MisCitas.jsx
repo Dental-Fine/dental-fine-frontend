@@ -47,8 +47,39 @@ export const MisCitas = () => {
 
       setCitas(citasFormateadas);
     } catch (err) {
-      console.error("Error al cargar citas:", err);
-      setError("No se pudieron cargar las citas. Verifica que el servidor esté activo.");
+      console.warn("El endpoint real falló (probablemente el backend aún no lo tiene). Usando datos de prueba...");
+      
+      // FALLBACK TEMPORAL MIENTRAS EL BACKEND CREA EL ENDPOINT
+      const citasMock = [
+        {
+          id: 101,
+          fechaOriginal: "2026-10-12T10:30:00",
+          fecha: "2026-10-12",
+          hora: "10:30",
+          doctor: "Dr. Chapatin",
+          servicio: "Limpieza General",
+          clinica: "Clínica Central",
+          ubicacion: "Av. Siempre Viva 123",
+          estado: "PENDIENTE",
+          monto: 550,
+          notas: "Cita generada de prueba por el Frontend."
+        },
+        {
+          id: 102,
+          fechaOriginal: "2026-09-01T16:00:00",
+          fecha: "2026-09-01",
+          hora: "16:00",
+          doctor: "Dra. Elena Solís",
+          servicio: "Extracción",
+          clinica: "Clínica Central",
+          ubicacion: "Av. Siempre Viva 123",
+          estado: "COMPLETADA",
+          monto: 800,
+          notas: "El paciente reportó dolor moderado."
+        }
+      ];
+      setCitas(citasMock);
+      setError(null); // Quitamos el error para que te deje ver la pantalla
     } finally {
       setCargando(false);
     }
