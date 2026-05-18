@@ -26,10 +26,9 @@ export const Login = () => {
 
     try {
       // 1. Hacemos la petición POST al backend
-      // El backend actual espera un objeto LoginRequest
       const respuesta = await api.post('/auth/login', {
-        email: correo,
-        password: contrasena
+        correo: correo,
+        contrasena: contrasena
       });
 
       // 2. Si es exitoso, guardamos los datos en el navegador

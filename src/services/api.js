@@ -33,8 +33,8 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Si el backend dice "401 Unauthorized" (El token expiró o es falso)
-    if (error.response && error.response.status === 401) {
+    // Si el backend dice "401 Unauthorized" o "403 Forbidden" (El token expiró o falta)
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       console.warn("Sesión expirada o token inválido. Expulsando usuario...");
       
       // 1. Destruimos la sesión local

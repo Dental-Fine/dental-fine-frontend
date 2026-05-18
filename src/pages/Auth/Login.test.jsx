@@ -59,8 +59,8 @@ describe('Login Component - Pruebas de Software (Clases de Equivalencia y Valore
     // Verificamos que se llamó a la API correctamente
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/auth/login', {
-        email: 'test@correo.com',
-        password: 'password123'
+        correo: 'test@correo.com',
+        contrasena: 'password123'
       });
       // Verificamos redirección
       expect(mockNavigate).toHaveBeenCalledWith('/paciente/inicio');
