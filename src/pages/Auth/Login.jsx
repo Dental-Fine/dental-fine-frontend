@@ -40,7 +40,7 @@ export const Login = () => {
       // devuelve un objeto 'usuario', simularemos la estructura esperada por el Frontend.
       const usuarioData = {
         id: respuesta.data.usuario?.id || 1,
-        nombre: "Richy (Desde BD)", // Usamos un nombre estático hasta que el backend mande el nombre real
+        nombre: correo.split('@')[0].charAt(0).toUpperCase() + correo.split('@')[0].slice(1), // Usamos el prefijo del correo como nombre
         rol: respuesta.data.usuario?.rol || "PACIENTE",
         token: respuesta.data.token
       };
@@ -51,9 +51,9 @@ export const Login = () => {
       navigate('/paciente/inicio');
 
     } catch (error) {
-      // Si el servidor responde con error (ej. 401 Unauthorized) o está apagado
+      // Si el servidor responde con error (ej. 401 Unauthorized o 403 Forbidden)
       console.error("Error en login:", error);
-      if (error.response && error.response.status === 401) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         setErrorLogin('Correo o contraseña incorrectos.');
       } else {
         setErrorLogin('Error al conectar con el servidor.');
