@@ -96,11 +96,10 @@ export const AgendarCita = () => {
 
       // Llamada real al endpoint POST /citas/agendar
       const payload = {
-        pacienteId: usuarioLogueado.id || 1, // Doble blindaje
+        pacienteId: 1, // Hardcoded para el MVP (Paciente Richy es el id 1)
         dentistaId: parseInt(datos.dentistaId),
-        tipoServicioId: parseInt(datos.servicioId),
-        clinicaId: 1, // Fíjate que esté escrito exactamente así, con "I" mayúscula
-        fechaHora: fechaHoraISO
+        fechaHoraInicio: fechaHoraISO,
+        fechaHoraFin: `${datos.fecha}T${String(parseInt(datos.hora.split(':')[0]) + 1).padStart(2, '0')}:00:00`
       };
 
       // 2. Lo imprimimos en consola para que tú como Tech Lead veas qué viaja

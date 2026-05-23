@@ -1,29 +1,90 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '../../services/api';
 import { Odontograma } from '../../components/ui/Odontograma';
-
 import { 
   Activity, AlertTriangle, Pill, HeartPulse, 
-  FileText, Clock, ShieldAlert, Droplet, 
-  Stethoscope, ChevronRight 
+  FileText, Clock, ShieldAlert, Inbox, 
+  Stethoscope 
 } from 'lucide-react';
 
 export const MiExpediente = () => {
-  // Mocks basados en tu tabla 'AntecedentesMedicos'
-  const antecedentes = {
-    alergias: "Penicilina, Látex",
-    medicamentosActuales: "Losartán 50mg, Ibuprofeno (ocasional)",
-    habitosSalud: "Fumador social (1-2 a la semana), Consumo regular de café.",
-    historialDental: "Tratamiento de ortodoncia finalizado en 2021. Extracción de 4 terceros molares (muelas del juicio).",
-    motivoInicial: "Sensibilidad en molares inferiores al tomar bebidas frías.",
-    ultimaActualizacion: "10 de Abril, 2026",
-    doctorActualizo: "Dr. Iván Ramos"
-  };
+  const [cargando, setCargando] = useState(true);
+  const [expediente, setExpediente] = useState(null);
+  const [error, setError] = useState(null);
 
-  // Mocks de tratamientos en curso (Tabla TratamientosPacientes)
-  const tratamientosActivos = [
-    { id: 1, nombre: "Limpieza Profunda y Profilaxis", progreso: 100, estado: "Completado" },
-    { id: 2, nombre: "Resina Estética Diente 36", progreso: 50, estado: "En curso" }
-  ];
+  useEffect(() => {
+    const cargarExpediente = async () => {
+      try {
+        const usuarioGuardado = JSON.parse(localStorage.getItem('usuario_dental_fine') || '{}');
+        const correo = usuarioGuardado.correo;
+        
+        if (!correo) {
+            setError("No se encontró el correo del usuario actual.");
+            setCargando(false);
+            return;
+        }
+
+        const pacientesResp = await api.get('/pacientes');
+        const pacienteActual = pacientesResp.data.find(p => p.correo === correo);
+
+        if (!pacienteActual) {
+            setError("Tu usuario aún no está enlazado a un perfil de paciente.");
+            setCargando(false);
+            return;
+        }
+
+        // SE CORRIGIÓ EL ERROR DE SINTAXIS AQUÍ USANDO BACKTICKS
+        const expResp = await api.get(`/expedientes/paciente/${pacienteActual.id}`);
+        setExpediente(expResp.data);
+      } catch (err) {
+        console.error("Error cargando expediente:", err);
+        if (err.response && (err.response.status === 404 || err.response.status === 500)) {
+            setExpediente(null);
+        } else {
+            setError("Ocurrió un error al cargar tu expediente clínico.");
+        }
+      } finally {
+        setCargando(false);
+      }
+    };
+    cargarExpediente();
+  }, []);
+
+  if (cargando) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-3xl mx-auto py-10">
+        <div className="bg-red-50 text-red-600 p-6 rounded-2xl border border-red-100 flex items-center gap-4 shadow-sm">
+          <AlertTriangle size={32} />
+          <div>
+            <h3 className="font-black text-lg">Error</h3>
+            <p className="font-medium">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!expediente) {
+    return (
+      <div className="max-w-4xl mx-auto py-16 flex flex-col items-center justify-center text-center bg-white rounded-3xl border border-slate-200 shadow-sm">
+        <div className="bg-slate-50 p-6 rounded-full mb-6">
+          <Inbox size={48} className="text-slate-300" />
+        </div>
+        <h2 className="text-2xl font-black text-dark mb-2">Aún no tienes un Expediente Clínico</h2>
+        <p className="text-slate-500 font-medium max-w-md">
+          Tu dentista creará tu expediente en tu primera cita para registrar tus antecedentes médicos, alergias y plan de tratamiento.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -36,7 +97,7 @@ export const MiExpediente = () => {
           </div>
           <h2 className="text-3xl font-black text-dark tracking-tight">Mi Expediente</h2>
           <p className="text-slate-500 font-medium mt-1 flex items-center gap-2">
-            <Clock size={16} /> Última actualización: {antecedentes.ultimaActualizacion}
+            <Clock size={16} /> Creado: {new Date(expediente.fechaCreacion).toLocaleDateString('es-ES')}
           </p>
         </div>
         <button className="flex items-center gap-2 text-sm font-bold text-primary hover:text-secondary transition-colors cursor-pointer bg-slate-50 px-4 py-2 rounded-xl">
@@ -46,114 +107,65 @@ export const MiExpediente = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* COLUMNA IZQUIERDA: Alertas y Medicamentos (Lo más crítico) */}
+        {/* COLUMNA IZQUIERDA */}
         <div className="space-y-6">
           
-          {/* Tarjeta de Alergias (Color Rojo Semántico) */}
           <div className="bg-red-50 rounded-3xl border border-red-100 p-6 shadow-sm relative overflow-hidden">
             <ShieldAlert size={100} className="absolute -right-6 -bottom-6 text-red-100/50" />
             <div className="relative z-10">
               <h3 className="text-red-800 font-black flex items-center gap-2 mb-4">
-                <AlertTriangle size={20} /> Alergias y Contraindicaciones
+                <AlertTriangle size={20} /> Alergias
               </h3>
-              {antecedentes.alergias ? (
-                <p className="text-red-900 font-medium text-lg leading-tight">
-                  {antecedentes.alergias}
-                </p>
+              {expediente.alergias ? (
+                <p className="text-red-900 font-medium text-lg leading-tight">{expediente.alergias}</p>
               ) : (
-                <p className="text-red-700/70 text-sm">Sin alergias registradas.</p>
+                <p className="text-red-700/70 text-sm font-medium">Sin alergias registradas.</p>
               )}
             </div>
           </div>
 
-          {/* Tarjeta de Medicamentos */}
-          <div className="bg-blue-50 rounded-3xl border border-blue-100 p-6 shadow-sm">
-            <h3 className="text-blue-800 font-black flex items-center gap-2 mb-4">
-              <Pill size={20} /> Medicación Actual
-            </h3>
-            <p className="text-blue-900 font-medium leading-relaxed">
-              {antecedentes.medicamentosActuales}
-            </p>
-          </div>
-
-          {/* Tarjeta de Hábitos */}
           <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
             <h3 className="text-slate-800 font-black flex items-center gap-2 mb-4">
-              <HeartPulse size={20} className="text-rose-500" /> Hábitos de Salud
+              <HeartPulse size={20} className="text-rose-500" /> Enfermedades Crónicas
             </h3>
-            <p className="text-slate-600 text-sm leading-relaxed font-medium">
-              {antecedentes.habitosSalud}
-            </p>
+            {expediente.enfermedadesCronicas ? (
+                <p className="text-slate-600 text-sm leading-relaxed font-medium">{expediente.enfermedadesCronicas}</p>
+            ) : (
+                <p className="text-slate-400 text-sm font-medium">Ninguna registrada.</p>
+            )}
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: Historia Dental y Tratamientos */}
+        {/* COLUMNA DERECHA */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Tarjeta de Historial Dental Previo */}
           <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
             <h3 className="text-xl font-black text-dark mb-6 pb-4 border-b border-slate-100 flex items-center gap-2">
-              <Stethoscope className="text-primary" /> Historial Odontológico
+              <Stethoscope className="text-primary" /> Evolución de Tratamientos
             </h3>
             
-            <div className="space-y-6">
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Motivo de Consulta Inicial</p>
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <p className="text-slate-700 font-medium text-sm leading-relaxed">
-                    {antecedentes.motivoInicial}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tratamientos Previos (Otras Clínicas)</p>
-                <p className="text-slate-600 font-medium text-sm leading-relaxed px-2">
-                  {antecedentes.historialDental}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Tarjeta de Tratamientos Activos */}
-          <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-dark">Plan de Tratamiento Actual</h3>
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                Dr. a cargo: {antecedentes.doctorActualizo}
-              </span>
-            </div>
-
             <div className="space-y-4">
-              {tratamientosActivos.map((trat) => (
-                <div key={trat.id} className="group p-4 border border-slate-100 rounded-2xl hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer">
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-bold text-slate-800">{trat.nombre}</h4>
-                    <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-md ${
-                      trat.estado === 'Completado' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {trat.estado}
-                    </span>
+              {expediente.evoluciones && expediente.evoluciones.length > 0 ? (
+                expediente.evoluciones.map((evo) => (
+                  <div key={evo.id} className="p-4 border border-slate-100 rounded-2xl hover:border-primary/30 hover:bg-primary/5 transition-all">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-bold text-slate-800">Cita #{evo.cita?.id || 'N/A'}</h4>
+                      <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                        {new Date(evo.fechaRegistro).toLocaleDateString('es-ES')}
+                      </span>
+                    </div>
+                    <p className="text-slate-600 text-sm leading-relaxed">{evo.notasClinicas}</p>
                   </div>
-                  
-                  {/* Barra de progreso visual */}
-                  <div className="w-full bg-slate-100 rounded-full h-2 mb-1 overflow-hidden">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-1000 ${trat.estado === 'Completado' ? 'bg-green-500' : 'bg-primary'}`} 
-                      style={{ width: `${trat.progreso}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-right text-[10px] font-bold text-slate-400">{trat.progreso}% completado</p>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-slate-500 font-medium py-4 text-center">Aún no hay notas de evolución registradas.</p>
+              )}
             </div>
             
-            {/* EL NUEVO ODONTOGRAMA */}
             <div className="mt-8">
                <Odontograma />
             </div>
           </div>
-
         </div>
       </div>
     </div>

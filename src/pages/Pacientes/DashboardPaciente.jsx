@@ -1,26 +1,25 @@
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Activity, FileText } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import { api } from '../../services/api';
 
 export const DashboardPaciente = () => {
-  const navigate= useNavigate();
+  const navigate = useNavigate();
   const [usuario, setUsuario] = useState({ id: null, nombre: 'Paciente' });
 
-  // 1. Estado para el resumen del dashboard preparado para recibir datos reales
   const [resumen, setResumen] = useState({
     proximaCita: {
-      fecha: "12 Octubre, 2026",
-      tratamiento: "Limpieza General",
-      hora: "10:30 AM",
-      ubicacion: "Consultorio 2"
+      fecha: "--",
+      tratamiento: "Sin citas pendientes",
+      hora: "--:--",
+      ubicacion: "--"
     },
     tratamientosActivos: {
-      cantidad: 1,
-      detalle: "Ortodoncia"
+      cantidad: 0,
+      detalle: "Ninguno"
     }
   });
 
-  // 2. Al cargar la página, buscamos en el localStorage
   useEffect(() => {
     const usuarioGuardado = localStorage.getItem('usuario_dental_fine');
     if (usuarioGuardado) {
@@ -28,21 +27,42 @@ export const DashboardPaciente = () => {
     }
   }, []);
 
-  // 3. (OPCIONAL) Código preparado para cuando el backend tenga el endpoint de resumen:
-  /*
   useEffect(() => {
     const cargarResumen = async () => {
-      if (!usuario.id) return;
       try {
-        const respuesta = await api.get(`/pacientes/${usuario.id}/resumen`);
-        setResumen(respuesta.data);
+        // En el MVP el ID del paciente está hardcodeado a 1
+        const respuesta = await api.get('/citas/paciente/1');
+        const citas = respuesta.data;
+        
+        // Filtramos las citas pendientes
+        const pendientes = citas.filter(c => c.estado === 'PENDIENTE');
+        pendientes.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+        if (pendientes.length > 0) {
+          const proxima = pendientes[0];
+          const dateObj = new Date(proxima.fecha);
+          const fechaStr = dateObj.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+          const horaStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          setResumen({
+            proximaCita: {
+              fecha: fechaStr,
+              tratamiento: proxima.tipoServicio ? proxima.tipoServicio.nombre : (proxima.nombre || 'Consulta General'),
+              hora: horaStr,
+              ubicacion: proxima.clinica ? proxima.clinica.nombre : 'Clínica Central'
+            },
+            tratamientosActivos: {
+              cantidad: 1, // Puedes calcular esto con otra lógica si existe en BD
+              detalle: "Tratamiento Activo"
+            }
+          });
+        }
       } catch (err) {
-        console.error("Error cargando resumen:", err);
+        console.error("Error cargando citas para el resumen:", err);
       }
     };
     cargarResumen();
-  }, [usuario.id]);
-  */
+  }, []);
 
   return (
     <div className="max-w-5xl mx-auto">

@@ -34,21 +34,29 @@ export const Login = () => {
       // 2. Si es exitoso, guardamos los datos en el navegador
       if (respuesta.data.token) {
         localStorage.setItem('token_dental_fine', respuesta.data.token);
+        localStorage.setItem('auth_token', respuesta.data.token); // Para compatibilidad con el ApiService del Administrador
       }
       
       // Guardamos la info del usuario. El backend actual (mockeado en AuthController) 
       // devuelve un objeto 'usuario', simularemos la estructura esperada por el Frontend.
       const usuarioData = {
         id: respuesta.data.usuario?.id || 1,
+        correo: correo, // Guardamos el correo para buscar el paciente
         nombre: correo.split('@')[0].charAt(0).toUpperCase() + correo.split('@')[0].slice(1), // Usamos el prefijo del correo como nombre
         rol: respuesta.data.usuario?.rol || "PACIENTE",
         token: respuesta.data.token
       };
       
+      localStorage.setItem('rol', usuarioData.rol); // Para compatibilidad con el menú del Administrador
+      
       localStorage.setItem('usuario_dental_fine', JSON.stringify(usuarioData));
 
-      // 3. Lo mandamos a su portal
-      navigate('/paciente/inicio');
+      // 3. Lo mandamos a su portal dependiendo del rol
+      if (usuarioData.rol === 'ROLE_ADMIN' || usuarioData.rol === 'ROLE_DENTISTA') {
+          navigate('/admin/dashboard');
+      } else {
+          navigate('/paciente/inicio');
+      }
 
     } catch (error) {
       // Si el servidor responde con error (ej. 401 Unauthorized o 403 Forbidden)
