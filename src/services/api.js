@@ -1,109 +1,120 @@
-// src/services/api.js
+const BASE_URL = 'http://localhost:8080';
 
-// Aquí pondremos la URL donde esté corriendo el servidor de Kevin (usualmente localhost:3000 o 8080)
-const API_URL = 'http://localhost:8080';
+const getHeaders = () => {
+  const token = localStorage.getItem('auth_token');
+  return {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+};
+
 export const ApiService = {
+
+  // === PACIENTES ===
+  obtenerPacientes: async () => {
+    const response = await fetch(`${BASE_URL}/pacientes`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Error al obtener pacientes');
+    return await response.json();
+  },
   
-  // 1. LOGIN BÁSICO
-  // Envía el correo y la contraseña exacta como lo pide el backend
-  login: async (correo, contrasena) => {
-    try {
-      // Le quitamos el /api
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo, contrasena })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error("Error en el Login:", error);
-      throw error;
-    }
+  buscarPacientes: async (query) => {
+    const res = await ApiService.obtenerPacientes();
+    return res.filter(p => (p.nombre + " " + (p.apellidos||'')).toLowerCase().includes(query.toLowerCase()) || String(p.id).includes(query));
+  },
+  
+  obtenerPacientePorId: async (id) => {
+    const response = await fetch(`${BASE_URL}/pacientes/${id}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Error al obtener paciente');
+    return await response.json();
+  },
+  
+  crearPaciente: async (datos) => {
+    const response = await fetch(`${BASE_URL}/pacientes`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(datos) });
+    if (!response.ok) throw new Error(await response.text());
+    return await response.json();
+  },
+  
+  actualizarPaciente: async (id, datos) => {
+    const response = await fetch(`${BASE_URL}/pacientes/${id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(datos) });
+    if (!response.ok) throw new Error(await response.text());
+    return await response.json();
+  },
+  
+  eliminarPaciente: async (id) => {
+    const response = await fetch(`${BASE_URL}/pacientes/${id}`, { method: 'DELETE', headers: getHeaders() });
+    if (!response.ok) throw new Error('Error al eliminar');
+    return true;
   },
 
-  // 2. BUSCAR PACIENTES
-  buscarPacientes: async (busqueda) => {
-    try {
-      // Le quitamos el /api
-      const response = await fetch(`${API_URL}/pacientes/buscar?q=${busqueda}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error buscando pacientes:", error);
-      throw error;
-    }
-  },
-
-  // 3. CONSULTAR DISPONIBILIDAD
-  // Retorna [{ horaInicio, horaFin, disponible }]
-  consultarDisponibilidad: async (dentistaId, fecha) => {
-    try {
-      const response = await fetch(`${API_URL}/api/citas/disponibilidad?dentistaId=${dentistaId}&fecha=${fecha}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error consultando disponibilidad:", error);
-      throw error;
-    }
-  },
-
-  // 4. AGENDAR CITA
-  // Une la fecha y hora en el formato "YYYY-MM-DDTHH:MM:SS" que pide el backend
-  agendarCita: async (pacienteId, dentistaId, tipoServicioId, fechaHora) => {
-    try {
-      const response = await fetch(`${API_URL}/api/citas/agendar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          pacienteId, 
-          dentistaId, 
-          tipoServicioId, 
-          fechaHora // Ej: "2026-04-15T10:00:00"
-        })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error("Error agendando cita:", error);
-      throw error;
-    }
-  },
-  // 3. OBTENER TODAS LAS CITAS (¡NUEVO!)
+  // === CITAS ===
   obtenerCitas: async () => {
-    try {
-      const response = await fetch(`${API_URL}/citas`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error obteniendo citas:", error);
-      return [];
-    }
+    const response = await fetch(`${BASE_URL}/citas`, { headers: getHeaders() });
+    if (!response.ok) return [];
+    return await response.json();
   },
 
-  // 4. CONSULTAR DISPONIBILIDAD (Corregimos la URL quitando el /api)
-  consultarDisponibilidad: async (dentistaId, fecha) => {
-    try {
-      const response = await fetch(`${API_URL}/citas/disponibilidad?dentistaId=${dentistaId}&fecha=${fecha}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error consultando disponibilidad:", error);
-      throw error;
-    }
-  },
-
-  // 5. AGENDAR CITA (Corregimos la URL quitando el /api)
   agendarCita: async (pacienteId, dentistaId, tipoServicioId, fechaHora) => {
+    const inicio = new Date(fechaHora);
+    const fin = new Date(inicio.getTime() + 30 * 60000);
+    const formatISO = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+
+    const payload = {
+      pacienteId: parseInt(pacienteId),
+      dentistaId: parseInt(dentistaId),
+      fechaHoraInicio: fechaHora, 
+      fechaHoraFin: formatISO(fin)
+    };
+
+    const response = await fetch(`${BASE_URL}/citas/agendar`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(payload) });
+    if (!response.ok) throw new Error(await response.text() || 'Error al agendar la cita');
+    return await response.json();
+  },
+
+  // ✨ NUEVO: Método para conectarse al botón EDITAR de Spring Boot
+  editarCita: async (idCita, pacienteId, dentistaId, tipoServicioId, fechaHora) => {
+    const inicio = new Date(fechaHora);
+    const fin = new Date(inicio.getTime() + 30 * 60000);
+    const formatISO = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+
+    const payload = {
+      pacienteId: parseInt(pacienteId),
+      dentistaId: parseInt(dentistaId),
+      fechaHoraInicio: fechaHora, 
+      fechaHoraFin: formatISO(fin)
+    };
+
+    const response = await fetch(`${BASE_URL}/citas/${idCita}/editar`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(payload) });
+    if (!response.ok) throw new Error(await response.text() || 'Error al actualizar la cita');
+    return await response.json();
+  },
+
+  cancelarCita: async (idCita) => {
+    const response = await fetch(`${BASE_URL}/citas/${idCita}/cancelar`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ rolUsuario: "ROLE_RECEPCION", motivoCancelacion: "Cancelación desde Recepción" }) 
+    });
+    if (!response.ok) throw new Error('Error al cancelar');
+    return await response.json();
+  },
+
+  // === CATÁLOGOS ===
+  obtenerDentistas: async () => {
     try {
-      const response = await fetch(`${API_URL}/citas/agendar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pacienteId, dentistaId, tipoServicioId, fechaHora })
-      });
-      if (!response.ok) {
-        // Si Java responde con error (ej. 400 o 500), forzamos a que React lance la alerta
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.mensaje || "Error al agendar la cita. Verifica que los IDs existan.");
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error agendando cita:", error);
-      throw error;
-    }
+      const response = await fetch(`${BASE_URL}/dentistas`, { headers: getHeaders() });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data.content || []);
+    } catch (error) { return []; }
+  },
+
+  obtenerServicios: async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/servicios`, { headers: getHeaders() });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data.content || []);
+    } catch (error) { return []; }
   }
 };

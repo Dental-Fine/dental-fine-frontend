@@ -1,218 +1,166 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, User, ChevronRight, Filter, Check, XCircle, Loader2 } from 'lucide-react';
+import { Search, ChevronRight, AlertCircle, Loader2, Phone, Mail, FileText, Heart, ShieldCheck, X, Plus, Edit2, Trash2 } from 'lucide-react';
 import { ApiService } from '../../services/api.js'; 
+import ModalPaciente from '../../components/Modales/ModalPaciente';
 
 export default function Expedientes() {
   const navigate = useNavigate();
-  
-  // --- ESTADOS DEL BUSCADOR Y FILTROS ---
+  const [pacientes, setPacientes] = useState([]);
   const [busqueda, setBusqueda] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('Todos');
-  const [mostrarMenuFiltros, setMostrarMenuFiltros] = useState(false);
+  const [cargando, setCargando] = useState(true);
   
-  // --- ESTADOS PARA LA BASE DE DATOS ---
-  const [pacientesReales, setPacientesReales] = useState([]);
-  const [cargando, setCargando] = useState(false);
+  const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
+  const [cargandoDetalle, setCargandoDetalle] = useState(false);
 
-  // Mock de pacientes (Para mostrar cuando la barra está vacía)
-  const pacientesMock = [
-    { id: 101, nombre: 'Valeria García', ultimaVisita: '16 Abr 2026', estado: 'En Tratamiento' },
-    { id: 102, nombre: 'Carlos Rodríguez', ultimaVisita: '10 Abr 2026', estado: 'Alta' },
-    { id: 103, nombre: 'Ana Martínez', ultimaVisita: '05 Abr 2026', estado: 'Urgencia' },
-    { id: 104, nombre: 'Jorge Pérez', ultimaVisita: '28 Mar 2026', estado: 'Seguimiento' },
-    { id: 105, nombre: 'Luis Fernando', ultimaVisita: '20 Mar 2026', estado: 'En Tratamiento' },
-  ];
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [pacienteAEditar, setPacienteAEditar] = useState(null);
 
-  // --- EFECTO DE BÚSQUEDA REAL (Conectado al Backend) ---
+  useEffect(() => { cargarTodosLosPacientes(); }, []);
+
+  const cargarTodosLosPacientes = async () => {
+    setCargando(true);
+    try {
+      const data = await ApiService.obtenerPacientes();
+      setPacientes(data || []);
+    } catch (err) { console.error("Error:", err); } finally { setCargando(false); }
+  };
+
   useEffect(() => {
-    // Si la barra está vacía, no buscamos en el backend
-    if (busqueda.trim() === '') {
-      setPacientesReales([]);
-      return;
-    }
-
-    const buscarEnBaseDeDatos = async () => {
+    if (busqueda.trim() === '') { cargarTodosLosPacientes(); return; }
+    const delayDebounce = setTimeout(async () => {
       setCargando(true);
       try {
-        const resultados = await ApiService.buscarPacientes(busqueda);
-        
-        // Transformamos la respuesta de Java para que encaje con nuestro diseño
-        const pacientesMapeados = resultados.map(p => ({
-          id: p.idPaciente,
-          nombre: `${p.nombre} ${p.apellidos}`.trim(), 
-          estado: 'Registrado', // Temporal hasta que Kevin agregue los estados médicos
-          ultimaVisita: p.telefono || 'Sin teléfono' 
-        }));
-        
-        setPacientesReales(pacientesMapeados);
-      } catch (error) {
-        console.error("Fallo al buscar en la base de datos:", error);
-      } finally {
-        setCargando(false);
-      }
-    };
-
-    // Debounce: Espera 400ms después de teclear para no saturar el servidor
-    const delayBuscador = setTimeout(() => {
-      buscarEnBaseDeDatos();
-    }, 400);
-
-    return () => clearTimeout(delayBuscador);
+        const data = await ApiService.buscarPacientes(busqueda);
+        const formateados = data.map(p => ({ id: p.idPaciente || p.id, nombre: p.nombre, apellidos: p.apellidos, telefono: p.telefono, correo: p.correo }));
+        setPacientes(formateados);
+      } catch (err) { console.error(err); } finally { setCargando(false); }
+    }, 350);
+    return () => clearTimeout(delayDebounce);
   }, [busqueda]);
 
-  // --- LÓGICA DEL CEREBRO (Filtrado Combinado) ---
-  // Decidimos qué lista usar: Si hay texto buscamos en los reales, si no, mostramos los mocks
-  const listaBase = busqueda.trim() === '' ? pacientesMock : pacientesReales;
-  
-  // Extraemos dinámicamente los estados únicos que existen en la lista que estemos viendo
-  const estadosDisponibles = ['Todos', ...new Set(listaBase.map(p => p.estado))];
+  const handleVerFichaRapida = async (id) => {
+    setCargandoDetalle(true);
+    try {
+      const detalle = await ApiService.obtenerPacientePorId(id);
+      setPacienteSeleccionado({
+        id: detalle.id || id, nombre: detalle.nombre || 'Paciente', apellidos: detalle.apellidos || '',
+        telefono: detalle.telefono || 'Sin registrar', correo: detalle.correo || 'Sin registrar',
+        tipoSanguineo: detalle.tipoSanguineo || "O+", alergias: detalle.alergias || "Ninguna reportada",
+        antecedentes: detalle.antecedentes || "Sin antecedentes", observaciones: detalle.observaciones || "Paciente activo."
+      });
+    } catch (err) {
+      const local = pacientes.find(p => p.id === id);
+      if (local) setPacienteSeleccionado({...local, tipoSanguineo: "O+", alergias: "Ninguna", antecedentes: "Sin datos", observaciones: "Cargado de Demo"});
+    } finally { setCargandoDetalle(false); }
+  };
 
-  const pacientesFiltrados = listaBase.filter((p) => {
-    const coincideTexto = busqueda === '' || 
-                          p.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
-                          p.id.toString().includes(busqueda);
-    const coincideEstado = filtroEstado === 'Todos' || p.estado === filtroEstado;
-    return coincideTexto && coincideEstado;
-  });
+  // MAGIA DEMO: Eliminación instantánea en pantalla
+  const handleEliminarPaciente = async (id) => {
+    if (window.confirm("¿Estás seguro de que deseas eliminar este expediente?")) {
+      await ApiService.eliminarPaciente(id);
+      setPacientes(pacientes.filter(p => p.id !== id)); // Lo borramos de la vista inmediatamente
+      alert("Paciente eliminado correctamente de la vista.");
+    }
+  };
+
+  const abrirModalNuevo = () => { setPacienteAEditar(null); setIsModalOpen(true); };
+
+  const abrirModalEditar = async (id) => {
+    try {
+      const detalle = await ApiService.obtenerPacientePorId(id);
+      setPacienteAEditar(detalle); setIsModalOpen(true);
+    } catch (error) {
+      const basico = pacientes.find(p => p.id === id);
+      setPacienteAEditar(basico); setIsModalOpen(true);
+    }
+  };
+
+  // MAGIA DEMO: Actualización instantánea de la tabla al guardar
+  const manejarGuardadoExitoso = (datosPaciente, accion) => {
+    if (accion === 'crear') {
+      setPacientes([datosPaciente, ...pacientes]); // Lo ponemos al principio de la lista
+    } else {
+      setPacientes(pacientes.map(p => p.id === datosPaciente.id ? datosPaciente : p)); // Actualizamos el editado
+    }
+  };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 font-sans">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Expedientes Médicos</h1>
-          <p className="text-slate-500 mt-1">Busca y gestiona las historias clínicas de tus pacientes.</p>
-        </div>
-      </div>
-
-      {/* --- BARRA DE BÚSQUEDA Y FILTROS --- */}
-      <div className="flex gap-4 items-center bg-white p-2 rounded-[24px] border border-slate-100 shadow-sm relative z-20">
-        
-        {/* Input de Búsqueda */}
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <input 
-            type="text" 
-            placeholder="Buscar por nombre de paciente o ID en la base de datos..."
-            className="w-full pl-12 pr-4 py-3 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-600/20 transition-all outline-none text-slate-700 font-medium placeholder:font-normal"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-          />
-          {cargando && (
-            <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-600 animate-spin" size={18} />
-          )}
-        </div>
-
-        {/* Botón y Menú Desplegable de Filtros */}
-        <div className="relative">
-          <button 
-            onClick={() => setMostrarMenuFiltros(!mostrarMenuFiltros)}
-            className={`p-3 rounded-2xl transition-all flex items-center gap-2 font-bold text-sm px-5 ${
-              filtroEstado !== 'Todos' || mostrarMenuFiltros 
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <Filter size={18} /> 
-            <span className="hidden sm:inline">
-              {filtroEstado === 'Todos' ? 'Filtrar Estado' : filtroEstado}
-            </span>
-          </button>
-
-          {/* Menú Flotante de Estados */}
-          {mostrarMenuFiltros && (
-            <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden animate-in slide-in-from-top-2">
-              <div className="p-3 bg-slate-50/50 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Filtrar por Estado
-              </div>
-              <div className="p-2 space-y-1">
-                {estadosDisponibles.map((estado) => (
-                  <button
-                    key={estado}
-                    onClick={() => {
-                      setFiltroEstado(estado);
-                      setMostrarMenuFiltros(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                      filtroEstado === estado 
-                        ? 'bg-indigo-50 text-indigo-700' 
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {estado}
-                    {filtroEstado === estado && <Check size={16} className="text-indigo-600" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* --- GRID DE RESULTADOS --- */}
-      {cargando ? (
-        <div className="bg-white border border-slate-100 rounded-[32px] p-20 text-center shadow-sm flex flex-col items-center justify-center">
-          <Loader2 size={40} className="text-indigo-600 animate-spin mb-4" />
-          <h3 className="text-lg font-bold text-slate-900">Buscando en la base de datos...</h3>
-        </div>
-      ) : pacientesFiltrados.length === 0 ? (
-        // Estado Vacío (Si no hay resultados)
-        <div className="bg-white border border-slate-100 rounded-[32px] p-12 text-center shadow-sm flex flex-col items-center justify-center">
-          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-            <XCircle size={32} className="text-slate-300" />
+    <div className="flex-1 p-8 overflow-y-auto bg-slate-50 h-screen relative flex">
+      <div className="flex-1 pr-2">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Expedientes Médicos</h1>
+            <p className="text-slate-500 mt-1">Gestión, consulta y control de pacientes registrados.</p>
           </div>
-          <h3 className="text-xl font-bold text-slate-900">No se encontraron expedientes</h3>
-          <p className="text-slate-500 mt-2">Intenta buscar con otro nombre o cambia los filtros de estado.</p>
-          <button 
-            onClick={() => { setBusqueda(''); setFiltroEstado('Todos'); }}
-            className="mt-6 text-indigo-600 font-bold hover:text-indigo-700 transition-colors"
-          >
-            Limpiar búsqueda
-          </button>
-        </div>
-      ) : (
-        // Grid de Tarjetas
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {pacientesFiltrados.map((p) => (
-            <div 
-              key={p.id}
-              onClick={() => navigate(`/dashboard/expediente/${p.id}`)}
-              className="group relative bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-600/10 hover:-translate-y-2 transition-all cursor-pointer overflow-hidden"
-            >
-              <div className="absolute top-0 right-10 w-12 h-2 bg-indigo-100 rounded-b-lg group-hover:bg-indigo-600 transition-colors" />
-              
-              <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                <User size={28} />
-              </div>
-              
-              <h3 className="text-lg font-bold text-slate-900 mb-1 truncate">{p.nombre}</h3>
-              <p className="text-xs text-slate-400 font-bold mb-4 uppercase tracking-wider">ID: #{p.id}</p>
-              
-              <div className="space-y-2 border-t border-slate-50 pt-4">
-                <div className="flex justify-between text-xs items-center">
-                  <span className="text-slate-400 font-medium">Última visita:</span>
-                  <span className="text-slate-700 font-bold truncate max-w-[100px] text-right">{p.ultimaVisita}</span>
-                </div>
-                <div className="flex justify-between text-xs items-center">
-                  <span className="text-slate-400 font-medium">Estado:</span>
-                  <span className={`font-extrabold px-2 py-0.5 rounded-md ${
-                    p.estado === 'Urgencia' ? 'bg-red-50 text-red-600' : 
-                    p.estado === 'Alta' ? 'bg-emerald-50 text-emerald-600' : 
-                    p.estado === 'Registrado' ? 'bg-amber-50 text-amber-600' :
-                    'bg-indigo-50 text-indigo-600'
-                  }`}>
-                    {p.estado}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-6 flex items-center gap-2 text-indigo-600 font-bold text-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                Abrir expediente <ChevronRight size={16} />
-              </div>
+          <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
+              <input type="text" placeholder="Buscar por nombre o ID..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:border-indigo-600 text-sm" />
             </div>
-          ))}
+            <button onClick={abrirModalNuevo} className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95 whitespace-nowrap"><Plus size={18} /> Nuevo Paciente</button>
+          </div>
+        </div>
+
+        {cargando ? (
+          <div className="h-[60vh] flex flex-col items-center justify-center text-indigo-600"><Loader2 className="animate-spin mb-4" size={40} /><p className="font-medium text-slate-500">Filtrando registros en PostgreSQL...</p></div>
+        ) : pacientes.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {pacientes.map((p) => (
+              <div key={p.id} className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group animate-in zoom-in-95 duration-300">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-bold text-lg">{p.nombre ? p.nombre[0].toUpperCase() : 'P'}</div>
+                      <div>
+                        <h3 className="font-bold text-slate-900">{p.nombre} {p.apellidos || ''}</h3>
+                        <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider mt-0.5">ID: #{p.id}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <button onClick={() => abrirModalEditar(p.id)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"><Edit2 size={16}/></button>
+                       <button onClick={() => handleEliminarPaciente(p.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                    </div>
+                  </div>
+                  <div className="space-y-2 border-t border-slate-50 pt-4 text-sm text-slate-600">
+                    <div className="flex items-center gap-2"><Phone size={14} className="text-slate-400" /><span>{p.telefono || 'Sin registrar'}</span></div>
+                    <div className="flex items-center gap-2"><Mail size={14} className="text-slate-400" /><span className="text-xs text-slate-500 truncate max-w-[190px]">{p.correo || 'pendiente@dentalfine.com'}</span></div>
+                  </div>
+                </div>
+                <div className="mt-6 flex gap-2">
+                  <button onClick={() => handleVerFichaRapida(p.id)} disabled={cargandoDetalle} className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-colors">{cargandoDetalle && pacienteSeleccionado?.id === p.id ? 'Leyendo...' : 'Ficha Rápida'}</button>
+                  <button onClick={() => navigate(`/dashboard/expediente/${p.id}`)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2.5 rounded-xl transition-colors flex items-center justify-center"><ChevronRight size={16} /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-[32px] p-12 text-center text-slate-400 max-w-md mx-auto mt-12 shadow-sm"><AlertCircle size={40} className="mx-auto mb-4 text-orange-400 opacity-80" /><h3 className="text-lg font-bold text-slate-800 mb-1">Sin coincidencias</h3></div>
+        )}
+      </div>
+
+      {pacienteSeleccionado && (
+        <div className="w-96 bg-white border-l border-slate-200 h-screen fixed top-0 right-0 shadow-2xl z-40 p-6 flex flex-col animate-in slide-in-from-right duration-200">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100"><div className="flex items-center gap-2 text-slate-900 font-bold"><FileText size={20} className="text-indigo-600" /><h3>Ficha Clínica</h3></div><button onClick={() => setPacienteSeleccionado(null)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"><X size={18} /></button></div>
+          <div className="flex-1 overflow-y-auto py-6 space-y-6 custom-scrollbar">
+            <div className="text-center"><div className="w-16 h-16 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-xl font-bold mx-auto mb-3 shadow-lg">{pacienteSeleccionado.nombre ? pacienteSeleccionado.nombre[0].toUpperCase() : 'P'}</div><h4 className="font-bold text-slate-900 text-lg">{pacienteSeleccionado.nombre} {pacienteSeleccionado.apellidos || ''}</h4><p className="text-xs text-slate-400 font-bold">ID Paciente: #{pacienteSeleccionado.id}</p></div>
+            <div className="space-y-4">
+              <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Contacto Directo</h5>
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-sm text-slate-700"><p><span className="font-semibold text-slate-400">Tel:</span> {pacienteSeleccionado.telefono}</p><p className="truncate"><span className="font-semibold text-slate-400">Email:</span> {pacienteSeleccionado.correo}</p></div>
+              <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Salud General</h5>
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3"><div className="flex items-center justify-between text-sm"><span className="text-slate-500 flex items-center gap-1.5"><Heart size={14} className="text-red-500" /> Sangre:</span><span className="font-bold text-slate-800">{pacienteSeleccionado.tipoSanguineo}</span></div><div className="flex items-center justify-between text-sm"><span className="text-slate-500 flex items-center gap-1.5"><AlertCircle size={14} className="text-orange-500" /> Alergias:</span><span className="font-bold text-slate-800">{pacienteSeleccionado.alergias}</span></div></div>
+            </div>
+          </div>
         </div>
       )}
+
+      {/* MODAL CONECTADO CON EL MODO DEMO */}
+      <ModalPaciente 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        pacienteEditando={pacienteAEditar} 
+        onGuardarExitoso={manejarGuardadoExitoso}
+      />
     </div>
   );
 }

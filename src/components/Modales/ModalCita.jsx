@@ -1,195 +1,260 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Clock, User, Stethoscope, CheckCircle2, Loader2, BriefcaseMedical } from 'lucide-react';
+import { X, Calendar, Clock, User, Stethoscope, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { ApiService } from '../../services/api';
 
 export default function ModalCita({ isOpen, onClose, citaEditando }) {
-  // Estados para enviar al backend
-  const [cargandoGuardar, setCargandoGuardar] = useState(false);
+  const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [exito, setExito] = useState(false);
 
-  // Estados controlados para poder "escuchar" cuándo cambian y buscar disponibilidad
-  const [dentistaId, setDentistaId] = useState(citaEditando?.id_dentista || '');
-  const [fecha, setFecha] = useState(citaEditando?.fecha || '');
-  const [horaSeleccionada, setHoraSeleccionada] = useState(citaEditando?.hora || '');
-  
-  // Estados para los horarios inteligentes
+  const [dentistas, setDentistas] = useState([]);
+  const [servicios, setServicios] = useState([]);
+  const [pacientes, setPacientes] = useState([]);
+
+  const [pacienteId, setPacienteId] = useState('');
+  const [dentistaId, setDentistaId] = useState('');
+  const [tipoServicioId, setTipoServicioId] = useState('');
+  const [fecha, setFecha] = useState('');
+  const [hora, setHora] = useState('');
+
+  const [esNuevoPaciente, setEsNuevoPaciente] = useState(false);
+
+  // Modificado: Ahora guardará objetos completos { hora: '09:00', disponible: true/false }
   const [horariosDisponibles, setHorariosDisponibles] = useState([]);
-  const [buscandoHorarios, setBuscandoHorarios] = useState(false);
+  const [cargandoHorarios, setCargandoHorarios] = useState(false);
 
-  // --- EFECTO: BUSCAR DISPONIBILIDAD ---
-  // Este useEffect se dispara cada vez que el "dentistaId" o la "fecha" cambian
   useEffect(() => {
-    // Si falta el dentista o la fecha, limpiamos los horarios
-    if (!dentistaId || !fecha) {
-      setHorariosDisponibles([]);
-      return;
+    if (isOpen) {
+      const cargarCatalogos = async () => {
+        try {
+          const [listadoDentistas, listadoServicios, listadoPacientes] = await Promise.all([
+            ApiService.obtenerDentistas(), ApiService.obtenerServicios(), ApiService.obtenerPacientes()
+          ]);
+          setDentistas(listadoDentistas || []);
+          setServicios(listadoServicios || []);
+          setPacientes(listadoPacientes || []);
+        } catch (err) { console.error("Error", err); }
+      };
+      cargarCatalogos();
     }
+  }, [isOpen]);
 
-    const buscarDisponibilidad = async () => {
-      setBuscandoHorarios(true);
-      setHoraSeleccionada(''); // Limpiamos la hora anterior si cambian de día
-      try {
-        const respuesta = await ApiService.consultarDisponibilidad(dentistaId, fecha);
-        setHorariosDisponibles(respuesta);
-      } catch (err) {
-        console.error("Error al traer horarios", err);
-        setError("No se pudieron cargar los horarios del dentista.");
-      } finally {
-        setBuscandoHorarios(false);
+  useEffect(() => {
+    if (isOpen && citaEditando) {
+      setPacienteId(citaEditando.paciente?.id || citaEditando.idPaciente || '');
+      setDentistaId(citaEditando.dentista?.id || citaEditando.idDentista || '');
+      setTipoServicioId(citaEditando.servicio?.id || citaEditando.idTipoServicio || '');
+
+      const dateString = citaEditando.fechaHoraInicio || citaEditando.fecha || '';
+      if (dateString.includes('T')) {
+        setFecha(dateString.split('T')[0]);
+        setHora(dateString.split('T')[1].substring(0, 5));
       }
-    };
+      setEsNuevoPaciente(false);
+    } else {
+      setPacienteId(''); setDentistaId(''); setTipoServicioId(''); setFecha(''); setHora('');
+      setEsNuevoPaciente(false);
+    }
+    setError(''); setExito(false);
+  }, [isOpen, citaEditando]);
 
-    // Pequeño retardo (debounce) para no saturar si escriben el ID muy rápido
-    const timeout = setTimeout(buscarDisponibilidad, 500);
-    return () => clearTimeout(timeout);
-  }, [dentistaId, fecha]);
-
-  if (!isOpen) return null;
-
-  const titulo = citaEditando ? 'Actualizar Cita' : 'Nueva Cita Rápida';
-  const textoBoton = citaEditando ? 'Guardar Cambios' : 'Agendar Cita';
+  // ✨ LÓGICA DE HORARIOS OCUPADOS
+  useEffect(() => {
+    if (fecha && dentistaId) {
+      setCargandoHorarios(true);
+      setTimeout(async () => {
+        try {
+          const token = localStorage.getItem('auth_token');
+          const headers = { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
+          const res = await fetch(`http://localhost:8080/citas/disponibilidad?dentistaId=${dentistaId}&fecha=${fecha}`, { headers });
+          
+          if (res.ok) {
+            const data = await res.json();
+            if (data.length > 0) {
+               
+               // Transformamos lo que manda Java en un objeto útil
+               let mapeados = data.map(d => {
+                 if (typeof d === 'string') return { hora: d.substring(0,5), disponible: true };
+                 return { 
+                   hora: (d.horaInicio || d.hora || '').substring(0,5), 
+                   disponible: d.disponible !== undefined ? d.disponible : true // Leemos si Java dice que está ocupado
+                 };
+               });
+               
+               // SALVAVIDAS AL EDITAR: Forzamos a que tu propia hora aparezca "disponible" para que no te bloquees a ti mismo
+               if (citaEditando && citaEditando.fechaHoraInicio) {
+                 const fechaOriginal = citaEditando.fechaHoraInicio.split('T')[0];
+                 const horaOriginal = citaEditando.fechaHoraInicio.split('T')[1].substring(0, 5);
+                 
+                 if (fecha === fechaOriginal) {
+                   const slotIndex = mapeados.findIndex(m => m.hora === horaOriginal);
+                   if (slotIndex !== -1) {
+                     mapeados[slotIndex].disponible = true; 
+                   } else {
+                     mapeados.push({ hora: horaOriginal, disponible: true });
+                     mapeados.sort((a, b) => a.hora.localeCompare(b.hora));
+                   }
+                 }
+               }
+               
+               setHorariosDisponibles(mapeados);
+               setCargandoHorarios(false);
+               return;
+            }
+          }
+          throw new Error("Usar salvavidas");
+        } catch(err) {
+           // Si falla el backend, mostramos unos de prueba
+           const prueba = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'].map(h => ({
+             hora: h, 
+             disponible: h !== '10:00' && h !== '14:00' // Simulamos un par de ocupados
+           }));
+           setHorariosDisponibles(prueba);
+        } finally {
+          setCargandoHorarios(false);
+        }
+      }, 400);
+    } else {
+      setHorariosDisponibles([]);
+    }
+  }, [fecha, dentistaId, citaEditando]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    if (!hora) { setError('Por favor selecciona un horario de la cuadrícula.'); return; }
+    setCargando(true); setError('');
 
-    // Validación extra: Asegurarnos de que eligió una hora de los botones
-    if (!horaSeleccionada) {
-      setError('Por favor, selecciona un horario disponible.');
-      return;
-    }
-
-    setCargandoGuardar(true);
-    const pacienteId = e.target.pacienteId.value;
-    const tipoServicioId = e.target.tipoServicioId.value;
-    
-    // Formateamos para Java: "2026-04-16T09:00:00"
-    const fechaHora = `${fecha}T${horaSeleccionada}:00`;
+    const fechaHoraCombinada = `${fecha}T${hora}:00`;
 
     try {
       if (citaEditando) {
-        console.log("Actualización simulada por ahora");
-        setTimeout(() => onClose(), 500);
+        await ApiService.editarCita(citaEditando.id, pacienteId, dentistaId, tipoServicioId, fechaHoraCombinada);
       } else {
-        await ApiService.agendarCita(pacienteId, dentistaId, tipoServicioId, fechaHora);
-        setExito(true);
-        setTimeout(() => {
-          setExito(false);
-          onClose();
-        }, 1500);
+        await ApiService.agendarCita(pacienteId, dentistaId, tipoServicioId, fechaHoraCombinada);
       }
+      setExito(true);
+      setTimeout(() => { setExito(false); onClose(true); }, 1500);
     } catch (err) {
-      setError('Error al agendar la cita. Verifica que los IDs existan.');
-    } finally {
-      setCargandoGuardar(false);
+      setError(err.message || "Error al procesar.");
+      setCargando(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+  if (!isOpen) return null;
 
-      <div className="relative bg-white w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-        <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-indigo-50/30">
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+      <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">{titulo}</h2>
-            <p className="text-slate-500 text-sm">Horarios sincronizados con el dentista en tiempo real.</p>
+            <h2 className="text-2xl font-bold text-slate-900">{citaEditando ? 'Reprogramar Cita' : 'Agendar Cita'}</h2>
+            <p className="text-slate-500 text-sm mt-1">Establece los parámetros y el horario de la consulta.</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white rounded-full text-slate-400 hover:text-red-500 transition-all">
-            <X size={24} />
-          </button>
+          <button onClick={() => onClose()} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"><X size={24} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm border border-red-100">{error}</div>}
-          {exito && <div className="bg-emerald-50 text-emerald-600 p-3 rounded-xl text-sm border border-emerald-100 font-bold">¡Cita agendada con éxito en el servidor!</div>}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* ID Paciente */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 ml-1 flex items-center gap-2">
-                <User size={16} className="text-indigo-600" /> ID Paciente
-              </label>
-              <input type="number" name="pacienteId" defaultValue={citaEditando?.id_paciente || ""} placeholder="Ej: 1" required
-                className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-600 outline-none" />
+        <div className="overflow-y-auto p-8 custom-scrollbar">
+          {error && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-2xl flex items-center gap-3"><AlertCircle size={20} /><p className="text-sm font-bold">{error}</p></div>}
+          {exito ? (
+            <div className="py-12 flex flex-col items-center justify-center text-center">
+              <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-6"><CheckCircle2 size={40} /></div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">¡Operación Exitosa!</h3>
             </div>
-
-            {/* ID Servicio */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 ml-1 flex items-center gap-2">
-                <BriefcaseMedical size={16} className="text-indigo-600" /> ID Servicio
-              </label>
-              <input type="number" name="tipoServicioId" placeholder="Ej: 1 (Limpieza)" required
-                className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-600 outline-none" />
-            </div>
-
-            {/* ID Dentista (CONTROLADO) */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 ml-1 flex items-center gap-2">
-                <Stethoscope size={16} className="text-indigo-600" /> ID Dentista
-              </label>
-              <input type="number" required placeholder="Ej: 1"
-                value={dentistaId} onChange={(e) => setDentistaId(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-600 outline-none" />
-            </div>
-
-            {/* Fecha (CONTROLADA) */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 ml-1 flex items-center gap-2">
-                <Calendar size={16} className="text-indigo-600" /> Fecha
-              </label>
-              <input type="date" required
-                value={fecha} onChange={(e) => setFecha(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-600" />
-            </div>
-
-            {/* --- CUADRÍCULA DE HORARIOS INTELIGENTES --- */}
-            <div className="md:col-span-2 space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <label className="text-sm font-semibold text-slate-700 ml-1 flex items-center gap-2 mb-3">
-                <Clock size={16} className="text-indigo-600" /> Horarios Disponibles
-              </label>
+          ) : (
+            <form id="citaForm" onSubmit={handleSubmit} className="space-y-6">
               
-              {buscandoHorarios ? (
-                <div className="flex items-center justify-center py-6 text-indigo-600">
-                  <Loader2 size={24} className="animate-spin mr-2" /> Buscando disponibilidad...
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Información del Paciente</h4>
                 </div>
-              ) : horariosDisponibles.length === 0 ? (
-                <div className="text-center py-4 text-slate-400 text-sm">
-                  Ingresa el ID del dentista y una fecha para ver los horarios.
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-2"><User size={14} /> Paciente Registrado *</label>
+                  <select required value={pacienteId} onChange={e => setPacienteId(e.target.value)} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                    <option value="">-- Elige un paciente --</option>
+                    {pacientes.map(p => (<option key={p.id || p.idPaciente} value={p.id || p.idPaciente}>{p.nombre} {p.apellidos}</option>))}
+                  </select>
                 </div>
-              ) : (
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
-                  {horariosDisponibles.map((h, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      disabled={!h.disponible} // Si Java dice false, lo bloqueamos
-                      onClick={() => setHoraSeleccionada(h.horaInicio)}
-                      className={`py-2 px-1 rounded-xl text-sm font-bold transition-all border ${
-                        !h.disponible 
-                          ? 'bg-slate-100 text-slate-300 border-slate-100 cursor-not-allowed line-through' // Ocupado
-                          : horaSeleccionada === h.horaInicio 
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/30' // Seleccionado
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-600 hover:text-indigo-600' // Libre
-                      }`}
-                    >
-                      {h.horaInicio}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+              </div>
 
-          </div>
+              <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-100 pb-2 pt-2">Parámetros Médicos</h4>
+              <div className="space-y-4">
+                
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-2"><User size={14} /> Dentista *</label>
+                  <select required value={dentistaId} onChange={e => { setDentistaId(e.target.value); setHora(''); }} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                    <option value="">-- Selecciona --</option>
+                    {dentistas.map(d => (<option key={d.id || d.idDentista} value={d.id || d.idDentista}>Dr(a). {d.nombre}</option>))}
+                  </select>
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-2"><Stethoscope size={14} /> Tratamiento *</label>
+                  <select required value={tipoServicioId} onChange={e => setTipoServicioId(e.target.value)} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                    <option value="">-- Selecciona --</option>
+                    {servicios.map(s => (<option key={s.id || s.idTipoServicio} value={s.id || s.idTipoServicio}>{s.nombre}</option>))}
+                  </select>
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-2"><Calendar size={14} /> Fecha Programada *</label>
+                  <input type="date" required value={fecha} onChange={e => { setFecha(e.target.value); setHora(''); }} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none" />
+                </div>
 
-          <div className="flex gap-4 pt-4">
-            <button type="button" onClick={onClose} disabled={cargandoGuardar} className="flex-1 px-6 py-4 rounded-2xl font-bold text-slate-500 hover:bg-slate-100 transition-all">Cancelar</button>
-            <button type="submit" disabled={cargandoGuardar} className="flex-1 flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-indigo-600/20">
-              {cargandoGuardar ? <><Loader2 size={20} className="animate-spin"/> Guardando...</> : textoBoton}
+                <div className="space-y-2 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-2"><Clock size={14} /> Horarios Disponibles *</label>
+                  
+                  {!fecha || !dentistaId ? (
+                    <div className="p-6 bg-slate-50 border border-slate-200 border-dashed rounded-xl text-sm text-center text-slate-400 font-medium">
+                      Selecciona un especialista y una fecha para ver los horarios.
+                    </div>
+                  ) : cargandoHorarios ? (
+                    <div className="p-6 flex justify-center items-center"><Loader2 className="animate-spin text-indigo-500" size={24} /></div>
+                  ) : horariosDisponibles.length > 0 ? (
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mt-2">
+                      {horariosDisponibles.map(h => {
+                        // ✨ NUEVA VERIFICACIÓN DE ESTADO
+                        const isOcupado = !h.disponible;
+                        const isSeleccionado = hora === h.hora;
+
+                        return (
+                          <button
+                            key={h.hora} 
+                            type="button" 
+                            disabled={isOcupado} // Deshabilita el click si está ocupado
+                            onClick={() => setHora(h.hora)}
+                            className={`py-2 px-1 rounded-xl text-[13px] font-black transition-all ${
+                              isOcupado
+                                ? 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed line-through' // Estilo bloqueado
+                                : isSeleccionado 
+                                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-105' // Estilo seleccionado
+                                  : 'bg-white border border-slate-200 text-slate-600 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50' // Estilo normal
+                            }`}
+                          >
+                            {h.hora}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-6 bg-slate-50 border border-slate-200 border-dashed rounded-xl text-sm text-center text-red-500 font-medium">
+                      No hay citas disponibles para este día.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </form>
+          )}
+        </div>
+
+        {!exito && (
+          <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 mt-auto sticky bottom-0 z-10">
+            <button type="button" onClick={() => onClose()} disabled={cargando} className="flex-1 px-6 py-4 rounded-xl font-bold text-slate-500 hover:bg-slate-200 text-sm transition-colors">Cancelar</button>
+            <button form="citaForm" type="submit" disabled={cargando} className="flex-1 flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold py-4 rounded-xl shadow-lg text-sm transition-all active:scale-95">
+              {cargando ? <><Loader2 className="animate-spin" size={18} /> Procesando...</> : citaEditando ? 'Actualizar Cita' : 'Confirmar Cita'}
             </button>
           </div>
-        </form>
+        )}
       </div>
     </div>
   );
