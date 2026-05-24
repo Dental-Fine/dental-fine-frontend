@@ -1,11 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
-import { Odontograma } from '../../components/ui/Odontograma';
 import { 
   Activity, AlertTriangle, Pill, HeartPulse, 
   FileText, Clock, ShieldAlert, Inbox, 
   Stethoscope 
 } from 'lucide-react';
+
+// --- COMPONENTE INTERNO: Diente Esquemático de 5 Caras ---
+function DienteEsquematico({ numero, condiciones = {} }) {
+  const obtenerEstiloCara = (condicion) => {
+    if (condicion === 'caries') return 'bg-red-500 border-red-600 z-10';
+    if (condicion === 'resin' || condicion === 'resina') return 'bg-blue-500 border-blue-600 z-10';
+    return 'bg-white'; // Sano, en paciente portal quitamos hover para que no parezca clickeable
+  };
+
+  const caras = [
+    { id: 'arriba', label: 'Vestibular', clip: 'polygon(0% 0%, 100% 0%, 75% 25%, 25% 25%)' },
+    { id: 'derecha', label: 'Distal', clip: 'polygon(100% 0%, 100% 100%, 75% 75%, 75% 25%)' },
+    { id: 'abajo', label: 'Lingual', clip: 'polygon(25% 75%, 75% 75%, 100% 100%, 0% 100%)' },
+    { id: 'izquierda', label: 'Mesial', clip: 'polygon(0% 0%, 25% 25%, 25% 75%, 0% 100%)' },
+    { id: 'centro', label: 'Oclusal', clip: 'polygon(25% 25%, 75% 25%, 75% 75%, 25% 75%)' }
+  ];
+
+  const condicionesDiente = condiciones[numero] || condiciones || {};
+
+  return (
+    <div className="flex flex-col items-center gap-1 bg-white p-1 rounded-xl border border-slate-100 shadow-sm cursor-default">
+      <span className="text-[10px] font-black text-slate-500 font-sans">{numero}</span>
+      <div className="relative w-11 h-11 border-2 border-slate-300 bg-slate-200 rounded-md overflow-hidden">
+        {caras.map((cara) => {
+          const estadoCara = condicionesDiente[cara.id];
+          return (
+            <div
+              key={cara.id}
+              style={{ clipPath: cara.clip }}
+              className={`absolute inset-0 border border-slate-300/40 ${obtenerEstiloCara(estadoCara)}`}
+              title={`Cara ${cara.label}`}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export const MiExpediente = () => {
   const [cargando, setCargando] = useState(true);
@@ -86,6 +123,13 @@ export const MiExpediente = () => {
     );
   }
 
+  const cuadranteSuperiorHemi1 = [18, 17, 16, 15, 14, 13, 12, 11];
+  const cuadranteSuperiorHemi2 = [21, 22, 23, 24, 25, 26, 27, 28];
+  const cuadranteInferiorHemi4 = [48, 47, 46, 45, 44, 43, 42, 41];
+  const cuadranteInferiorHemi3 = [31, 32, 33, 34, 35, 36, 37, 38];
+  
+  const odontogramaData = expediente.odontograma?.estadoDientes || {};
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       
@@ -163,7 +207,44 @@ export const MiExpediente = () => {
             </div>
             
             <div className="mt-8">
-               <Odontograma />
+               <div className="flex items-center gap-2 pb-4 border-b border-slate-100 mb-6">
+                 <h3 className="font-bold text-slate-900 text-sm">Odontograma Actualizado</h3>
+               </div>
+               <div className="space-y-6 py-4 overflow-x-auto">
+                 <div className="min-w-max mx-auto px-4 flex flex-col items-center space-y-6">
+                 <div className="flex gap-4 border-b border-dashed border-slate-200 pb-5">
+                   <div className="flex gap-1">
+                     {cuadranteSuperiorHemi1.map(n => (
+                       <DienteEsquematico key={n} numero={n} condiciones={odontogramaData} />
+                     ))}
+                   </div>
+                   <div className="w-[1px] bg-slate-200" />
+                   <div className="flex gap-1">
+                     {cuadranteSuperiorHemi2.map(n => (
+                       <DienteEsquematico key={n} numero={n} condiciones={odontogramaData} />
+                     ))}
+                   </div>
+                 </div>
+                 <div className="flex gap-4 pt-2">
+                   <div className="flex gap-1">
+                     {cuadranteInferiorHemi4.map(n => (
+                       <DienteEsquematico key={n} numero={n} condiciones={odontogramaData} />
+                     ))}
+                   </div>
+                   <div className="w-[1px] bg-slate-200" />
+                   <div className="flex gap-1">
+                     {cuadranteInferiorHemi3.map(n => (
+                       <DienteEsquematico key={n} numero={n} condiciones={odontogramaData} />
+                     ))}
+                   </div>
+                 </div>
+                 </div>
+               </div>
+               <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-around text-xs font-bold text-slate-500">
+                 <div className="flex items-center gap-2"><div className="w-3 h-3 bg-white border border-slate-300 rounded" /> Superficie Sana</div>
+                 <div className="flex items-center gap-2"><div className="w-3 h-3 bg-red-500 rounded" /> Caries Activa</div>
+                 <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500 rounded" /> Restaurado (Resina)</div>
+               </div>
             </div>
           </div>
         </div>
