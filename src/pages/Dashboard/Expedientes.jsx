@@ -68,12 +68,14 @@ export default function Expedientes() {
     } finally { setCargandoDetalle(false); }
   };
 
-  // MAGIA DEMO: Eliminación instantánea en pantalla
   const handleEliminarPaciente = async (id) => {
     if (window.confirm("¿Estás seguro de que deseas eliminar este expediente?")) {
-      await ApiService.eliminarPaciente(id);
-      setPacientes(pacientes.filter(p => p.id !== id)); // Lo borramos de la vista inmediatamente
-      alert("Paciente eliminado correctamente de la vista.");
+      try {
+        await ApiService.eliminarPaciente(id);
+        cargarTodosLosPacientes();
+      } catch (err) {
+        alert("Error al eliminar el paciente.");
+      }
     }
   };
 
@@ -82,6 +84,19 @@ export default function Expedientes() {
   const abrirModalEditar = async (id) => {
     try {
       const detalle = await ApiService.obtenerPacientePorId(id);
+      
+      // Intentar obtener los datos del expediente para rellenar Alergias, Sangre y Antecedentes
+      try {
+        const expReal = await ApiService.obtenerExpediente(id);
+        if (expReal) {
+          detalle.tipoSanguineo = expReal.tipoSanguineo;
+          detalle.alergias = expReal.alergias;
+          detalle.antecedentes = expReal.enfermedadesCronicas;
+        }
+      } catch (e) {
+        // Ignorar si no tiene expediente aún
+      }
+      
       setPacienteAEditar(detalle); setIsModalOpen(true);
     } catch (error) {
       const basico = pacientes.find(p => p.id === id);
@@ -89,13 +104,8 @@ export default function Expedientes() {
     }
   };
 
-  // MAGIA DEMO: Actualización instantánea de la tabla al guardar
-  const manejarGuardadoExitoso = (datosPaciente, accion) => {
-    if (accion === 'crear') {
-      setPacientes([datosPaciente, ...pacientes]); // Lo ponemos al principio de la lista
-    } else {
-      setPacientes(pacientes.map(p => p.id === datosPaciente.id ? datosPaciente : p)); // Actualizamos el editado
-    }
+  const manejarGuardadoExitoso = () => {
+    cargarTodosLosPacientes();
   };
 
   return (

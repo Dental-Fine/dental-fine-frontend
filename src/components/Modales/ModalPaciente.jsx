@@ -57,12 +57,22 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
     };
 
     try {
+      let pacienteIdTarget;
       if (pacienteEditando) {
         // Lógica para actualizar paciente existente
         await ApiService.actualizarPaciente(pacienteEditando.id, datosPaciente);
+        pacienteIdTarget = pacienteEditando.id;
       } else {
         // Lógica para crear paciente nuevo (Esto crea el Usuario y el Paciente en la BD)
-        await ApiService.crearPaciente(datosPaciente);
+        const nuevoPaciente = await ApiService.crearPaciente(datosPaciente);
+        pacienteIdTarget = nuevoPaciente.id;
+      }
+
+      // Actualizar Salud General en el Expediente asociado
+      try {
+        await ApiService.actualizarSaludGeneral(pacienteIdTarget, alergias, tipoSanguineo, antecedentes);
+      } catch (errSalud) {
+        console.warn("Error al actualizar salud general, pero el paciente se guardó.", errSalud);
       }
 
       setExito(true);

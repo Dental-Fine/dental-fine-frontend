@@ -126,10 +126,24 @@ export const ApiService = {
     return await response.json();
   },
 
+  actualizarSaludGeneral: async (pacienteId, alergias, tipoSanguineo, enfermedadesCronicas) => {
+    const response = await fetch(`${BASE_URL}/expedientes/paciente/${pacienteId}/salud-general`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ alergias, tipoSanguineo, enfermedadesCronicas })
+    });
+    if (!response.ok) throw new Error('Error al actualizar salud general');
+    return await response.json();
+  },
+
   // === CITAS ===
   obtenerCitas: async () => {
     const response = await fetch(`${BASE_URL}/citas`, { headers: getHeaders() });
-    if (!response.ok) return [];
+    if (!response.ok) {
+      console.error("Error al obtener citas. Status:", response.status);
+      try { console.error(await response.text()); } catch(e){}
+      return [];
+    }
     return await response.json();
   },
 
@@ -194,5 +208,34 @@ export const ApiService = {
       const data = await response.json();
       return Array.isArray(data) ? data : (data.content || []);
     } catch (error) { return []; }
+  },
+
+  crearServicio: async (datos) => {
+    const response = await fetch(`${BASE_URL}/servicios`, { 
+      method: 'POST', 
+      headers: getHeaders(), 
+      body: JSON.stringify(datos) 
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return await response.json();
+  },
+
+  actualizarServicio: async (id, datos) => {
+    const response = await fetch(`${BASE_URL}/servicios/${id}`, { 
+      method: 'PUT', 
+      headers: getHeaders(), 
+      body: JSON.stringify(datos) 
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return await response.json();
+  },
+
+  eliminarServicio: async (id) => {
+    const response = await fetch(`${BASE_URL}/servicios/${id}`, { 
+      method: 'DELETE', 
+      headers: getHeaders() 
+    });
+    if (!response.ok) throw new Error('Error al eliminar');
+    return true;
   }
 };

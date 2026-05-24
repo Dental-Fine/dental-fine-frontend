@@ -80,6 +80,9 @@ export default function ExpedienteDetalle() {
           
           // Guardamos el ID del expediente por si lo necesitamos para actualizar
           encontrado.expedienteId = expedienteReal.id;
+          encontrado.alergias = expedienteReal.alergias;
+          encontrado.tipoSanguineo = expedienteReal.tipoSanguineo;
+          encontrado.enfermedadesCronicas = expedienteReal.enfermedadesCronicas;
           
           setEvoluciones(expedienteReal.evoluciones || []);
           
@@ -151,9 +154,20 @@ export default function ExpedienteDetalle() {
     }
 
     try {
-      // Como no tenemos Cita ID de un dropdown aquí, mandamos un 1 provisorio 
-      // asumiendo que existe una cita, o Kevin luego lo hará opcional
-      const evolucionGuardada = await ApiService.agregarEvolucion(paciente.expedienteId, 1, nuevaNota);
+      // 1. Obtener citas del paciente para usar el ID real (regla del backend)
+      const citasTodas = await ApiService.obtenerCitas();
+      const idPacienteString = String(paciente.id || paciente.idPaciente);
+      const citasDelPaciente = citasTodas.filter(c => String(c.paciente?.id) === idPacienteString);
+
+      if (citasDelPaciente.length === 0) {
+        alert("El paciente debe tener al menos una cita agendada en el sistema para poder registrarle una nota clínica.");
+        return;
+      }
+
+      // 2. Usar el ID de su cita más reciente
+      const idCitaValida = citasDelPaciente[citasDelPaciente.length - 1].id;
+
+      const evolucionGuardada = await ApiService.agregarEvolucion(paciente.expedienteId, idCitaValida, nuevaNota);
       setEvoluciones([evolucionGuardada, ...evoluciones]);
       setNuevaNota('');
       setIsModalOpen(false);
@@ -239,7 +253,8 @@ export default function ExpedienteDetalle() {
             <h3 className="font-bold text-slate-900 text-sm">Odontograma Clínico (5 Caras)</h3>
           </div>
           
-          <div className="space-y-6 py-4 overflow-x-auto flex flex-col items-center">
+          <div className="space-y-6 py-4 overflow-x-auto">
+            <div className="min-w-max mx-auto px-4 flex flex-col items-center space-y-6">
             {/* Arcada Superior */}
             <div className="flex gap-4 border-b border-dashed border-slate-200 pb-5">
               <div className="flex gap-1">
@@ -269,6 +284,7 @@ export default function ExpedienteDetalle() {
                   <DienteEsquematico key={n} numero={n} condiciones={odontograma} onCaraClick={handleCaraClick} />
                 ))}
               </div>
+            </div>
             </div>
           </div>
 

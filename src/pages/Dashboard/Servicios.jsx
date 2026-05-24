@@ -29,13 +29,8 @@ export default function Servicios() {
       const data = await ApiService.obtenerServicios();
       setServicios(data || []);
     } catch (err) {
-      console.warn("Usando datos base de respaldo debido a base de datos limpia.");
-      // Datos dummy iniciales por si la base de datos de Kevin sigue vacía
-      setServicios([
-        { id: 1, nombre: 'Limpieza Dental Profunda', precio: 800.0, duracion: 30 },
-        { id: 2, nombre: 'Resina Estética', precio: 1200.0, duracion: 45 },
-        { id: 3, nombre: 'Consulta de Valoración', precio: 300.0, duracion: 20 }
-      ]);
+      console.error(err);
+      setError("Error al cargar los servicios del servidor.");
     } finally {
       setCargando(false);
     }
@@ -70,36 +65,21 @@ export default function Servicios() {
       duracion: parseFloat(duracion)
     };
 
-    const url = servicioEditando 
-      ? `http://localhost:8080/servicios/${servicioEditando.id}`
-      : 'http://localhost:8080/servicios';
-      
-    const method = servicioEditando ? 'PUT' : 'POST';
-
     try {
-      const response = await fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      if (servicioEditando) {
+        await ApiService.actualizarServicio(servicioEditando.id, payload);
+        setExitoMsg('¡Servicio actualizado con éxito!');
+      } else {
+        await ApiService.crearServicio(payload);
+        setExitoMsg('¡Servicio creado con éxito!');
+      }
 
-      if (!response.ok) throw new Error('Falla al guardar el servicio en el servidor.');
-
-      setExitoMsg(servicioEditando ? '¡Servicio actualizado con éxito!' : '¡Servicio creado con éxito!');
       setIsModalOpen(false);
       cargarServicios(); // Recargar lista real
       
       setTimeout(() => setExitoMsg(''), 2500);
     } catch (err) {
-      // Simulación local en caso de que Kevin aún no monte los endpoints PUT/DELETE
-      if (servicioEditando) {
-        setServicios(servicios.map(s => s.id === servicioEditando.id ? { ...s, ...payload } : s));
-      } else {
-        setServicios([...servicios, { id: Date.now(), ...payload }]);
-      }
-      setExitoMsg('Sincronizado de forma local.');
-      setIsModalOpen(false);
-      setTimeout(() => setExitoMsg(''), 2500);
+      setError(err.message || 'Falla al guardar el servicio en el servidor.');
     }
   };
 
@@ -108,20 +88,12 @@ export default function Servicios() {
     if (!window.confirm('¿Estás seguro de que deseas eliminar este servicio del catálogo?')) return;
     
     try {
-      const response = await fetch(`http://localhost:8080/servicios/${id}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) throw new Error('No se pudo eliminar el servicio.');
-      
+      await ApiService.eliminarServicio(id);
       setExitoMsg('Servicio removido correctamente.');
       cargarServicios();
       setTimeout(() => setExitoMsg(''), 2500);
     } catch (err) {
-      // Respaldo local interactivo para la presentación
-      setServicios(servicios.filter(s => s.id !== id));
-      setExitoMsg('Removido de la vista de forma segura.');
-      setTimeout(() => setExitoMsg(''), 2500);
+      alert(err.message || 'No se pudo eliminar el servicio.');
     }
   };
 

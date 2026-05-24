@@ -19,7 +19,10 @@ export default function DashboardRecepcion() {
     setCargando(true);
     try {
       const data = await ApiService.obtenerCitas();
-      const fechaStr = fechaSeleccionada.toISOString().split('T')[0];
+      const year = fechaSeleccionada.getFullYear();
+      const month = String(fechaSeleccionada.getMonth() + 1).padStart(2, '0');
+      const day = String(fechaSeleccionada.getDate()).padStart(2, '0');
+      const fechaStr = `${year}-${month}-${day}`;
       const filtradas = (data || []).filter(c => c.fecha && c.fecha.startsWith(fechaStr));
       setCitas(filtradas);
     } catch (err) {

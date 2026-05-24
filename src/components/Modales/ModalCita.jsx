@@ -43,7 +43,7 @@ export default function ModalCita({ isOpen, onClose, citaEditando }) {
     if (isOpen && citaEditando) {
       setPacienteId(citaEditando.paciente?.id || citaEditando.idPaciente || '');
       setDentistaId(citaEditando.dentista?.id || citaEditando.idDentista || '');
-      setTipoServicioId(citaEditando.servicio?.id || citaEditando.idTipoServicio || '');
+      setTipoServicioId(citaEditando.tipoServicio?.id || citaEditando.idTipoServicio || '');
 
       const dateString = citaEditando.fechaHoraInicio || citaEditando.fecha || '';
       if (dateString.includes('T')) {

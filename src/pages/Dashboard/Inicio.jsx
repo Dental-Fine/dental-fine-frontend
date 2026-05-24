@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Plus, Loader2, Edit2, Trash2, Stethoscope } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Plus, Loader2, Edit2, Trash2, Stethoscope, Users, Activity, XCircle, CheckCircle } from 'lucide-react';
 import { ApiService } from '../../services/api';
 import ModalCita from '../../components/Modales/ModalCita';
 
 export default function Inicio() {
   const [citas, setCitas] = useState([]);
+  const [totalPacientes, setTotalPacientes] = useState(0);
+  const [totalDentistas, setTotalDentistas] = useState(0);
   const [cargando, setCargando] = useState(true);
   
   // Estados para el control del Calendario Visual
@@ -19,24 +21,30 @@ export default function Inicio() {
     cargarTodasLasCitas();
   }, []);
 
-  // 1. Consultar todas las citas del Spring Boot para pintar los indicadores del mes
+  // 1. Consultar datos del Dashboard del Spring Boot
   const cargarTodasLasCitas = async () => {
     setCargando(true);
     try {
-      const data = await ApiService.obtenerCitas();
-      setCitas(data || []);
+      const [dataCitas, dataPacientes, dataDentistas] = await Promise.all([
+        ApiService.obtenerCitas().catch(() => []),
+        ApiService.obtenerPacientes().catch(() => []),
+        ApiService.obtenerDentistas().catch(() => [])
+      ]);
+      setCitas(dataCitas || []);
+      setTotalPacientes(dataPacientes?.length || 0);
+      setTotalDentistas(dataDentistas?.length || 0);
     } catch (err) {
-      console.error("Error al sincronizar citas en Inicio:", err);
+      console.error("Error al sincronizar datos en Inicio:", err);
     } finally {
       setCargando(false);
     }
   };
 
-  // Función para formatear fechas locales a cadena YYYY-MM-DD de forma segura
   const formatoFechaLocal = (date) => {
-    const d = new Date(date);
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const strFechaSeleccionada = formatoFechaLocal(fechaSeleccionada);
@@ -99,9 +107,73 @@ export default function Inicio() {
   return (
     <div className="flex-1 p-8 overflow-y-auto bg-slate-50 h-screen animate-in fade-in duration-500 font-sans">
       
-      <div className="mb-8">
+      <div className="mb-6 relative">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-200/50 rounded-full blur-3xl -z-10 translate-x-1/2 -translate-y-1/2"></div>
         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Panel de Control</h1>
         <p className="text-slate-500 mt-1">Agenda general y estatus diario de consultas clínicas.</p>
+      </div>
+
+      {/* MÉTRICAS RÁPIDAS (GLASSMORPHISM) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        {/* Tarjeta 1 */}
+        <div className="relative overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-5 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.1)] transition-all">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-100/50 rounded-full blur-2xl"></div>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Citas de Hoy</p>
+              <h3 className="text-3xl font-black text-slate-800">
+                {citas.filter(c => c.fecha && c.fecha.startsWith(formatoFechaLocal(new Date()))).length}
+              </h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+              <Activity size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* Tarjeta 2 */}
+        <div className="relative overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-5 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.1)] transition-all">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-100/50 rounded-full blur-2xl"></div>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Total Pacientes</p>
+              <h3 className="text-3xl font-black text-slate-800">{totalPacientes}</h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm">
+              <Users size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* Tarjeta 3 */}
+        <div className="relative overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-5 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.1)] transition-all">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-100/50 rounded-full blur-2xl"></div>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Dentistas Activos</p>
+              <h3 className="text-3xl font-black text-slate-800">{totalDentistas}</h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+              <Stethoscope size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* Tarjeta 4 */}
+        <div className="relative overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-5 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.1)] transition-all">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-100/50 rounded-full blur-2xl"></div>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Cancelaciones</p>
+              <h3 className="text-3xl font-black text-slate-800">
+                {citas.filter(c => c.estado === 'CANCELADA').length}
+              </h3>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shadow-sm">
+              <XCircle size={20} />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -256,15 +328,15 @@ export default function Inicio() {
                         <div className="space-y-1.5 pl-0.5">
                           <div className="flex items-center gap-2 text-sm text-slate-800 font-bold">
                             <User size={14} className="text-slate-400" />
-                            <span>{cita.nombrePaciente || `Paciente ID: ${cita.idPaciente}`}</span>
+                            <span>{cita.paciente?.nombre ? `${cita.paciente.nombre} ${cita.paciente.apellidos || ''}` : `Paciente ID: ${cita.idPaciente || cita.paciente?.id}`}</span>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
                             <Stethoscope size={14} className="text-slate-400" />
-                            <span>{cita.nombreServicio || `Tratamiento ID: ${cita.idTipoServicio}`}</span>
+                            <span>{cita.tipoServicio?.nombre || `Servicio Programado`}</span>
                           </div>
                           <div className="flex items-center gap-2 text-[11px] text-slate-400">
                             <Clock size={14} className="text-slate-400" />
-                            <span>Especialista: Dr(a). {cita.nombreDentista || `ID: ${cita.idDentista}`}</span>
+                            <span>Especialista: Dr(a). {cita.dentista?.nombre || `ID: ${cita.idDentista || cita.dentista?.id}`}</span>
                           </div>
                         </div>
                       </div>
