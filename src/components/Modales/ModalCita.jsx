@@ -72,13 +72,26 @@ export default function ModalCita({ isOpen, onClose, citaEditando }) {
             const data = await res.json();
             if (data.length > 0) {
                
+               // Obtenemos la fecha y hora actual en formato local
+               const hoy = new Date();
+               const year = hoy.getFullYear();
+               const month = String(hoy.getMonth() + 1).padStart(2, '0');
+               const day = String(hoy.getDate()).padStart(2, '0');
+               const fechaLocal = `${year}-${month}-${day}`;
+               const esHoy = fecha === fechaLocal;
+               const horaActual = String(hoy.getHours()).padStart(2, '0') + ':' + String(hoy.getMinutes()).padStart(2, '0');
+
                // Transformamos lo que manda Java en un objeto útil
                let mapeados = data.map(d => {
-                 if (typeof d === 'string') return { hora: d.substring(0,5), disponible: true };
-                 return { 
-                   hora: (d.horaInicio || d.hora || '').substring(0,5), 
-                   disponible: d.disponible !== undefined ? d.disponible : true // Leemos si Java dice que está ocupado
-                 };
+                 let horaStr = typeof d === 'string' ? d.substring(0,5) : (d.horaInicio || d.hora || '').substring(0,5);
+                 let isDisp = typeof d === 'string' ? true : (d.disponible !== undefined ? d.disponible : true);
+                 
+                 // Bloquear si es hoy y la hora ya pasó
+                 if (esHoy && horaStr < horaActual) {
+                   isDisp = false;
+                 }
+                 
+                 return { hora: horaStr, disponible: isDisp };
                });
                
                // SALVAVIDAS AL EDITAR: Forzamos a que tu propia hora aparezca "disponible" para que no te bloquees a ti mismo
