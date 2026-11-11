@@ -112,10 +112,10 @@ export default function MainLayout() {
             </span>
           </button>
 
-          <button onClick={() => navigate('/admin/correos')} className={navItemClass('/admin/correos')} title={!isExpanded ? "Correos y Cola Async" : ""}>
+          <button onClick={() => navigate('/admin/correos')} className={navItemClass('/admin/correos')} title={!isExpanded ? "Correos" : ""}>
             <div className="min-w-[20px] flex justify-center"><Mail size={20} className={location.pathname.startsWith('/admin/correos') ? 'text-indigo-200' : 'text-slate-500'} /></div>
             <span className={`whitespace-nowrap transition-all duration-300 ease-in-out ${isExpanded ? 'opacity-100 ml-2' : 'opacity-0 ml-0 w-0'}`}>
-              Correos y Cola Async
+              Correos
             </span>
           </button>
 

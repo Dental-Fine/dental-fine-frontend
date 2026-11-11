@@ -8,10 +8,8 @@ import {
   Stethoscope,
   FileText,
   Mail,
-  Archive,
   AlertTriangle,
-  Loader2,
-  Sparkles
+  Loader2
 } from 'lucide-react';
 import { ApiService } from '../../services/api';
 import { EmailQueueService } from '../../services/emailQueueService';
@@ -26,7 +24,7 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
   useEffect(() => {
     if (isOpen && cita) {
       setEstadoResolucion('FINALIZADA');
-      setNotasRecepcion('Asistencia confirmada en recepción. Consulta concluida satisfactoriamente.');
+      setNotasRecepcion('Paciente asistió puntualmente. Consulta concluida.');
       const config = EmailQueueService.obtenerConfiguracion();
       setEnviarCorreoAsync(config.encolarAlConfirmarRecepcion !== false);
       setProcesando(false);
@@ -51,16 +49,16 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
   const notasRapidas =
     estadoResolucion === 'FINALIZADA'
       ? [
-          'Asistencia puntual y consulta finalizada.',
-          'Cita atendida, pasa a expediente e historial.',
-          'Tratamiento completado sin observaciones.'
+          'Paciente asistió puntualmente.',
+          'Consulta concluida sin observaciones.',
+          'Requiere agendar cita de seguimiento.'
         ]
       : [
-          'Paciente no se presentó tras 15 min de tolerancia.',
-          'Inasistencia confirmada vía telefónica.'
+          'No se presentó tras 15 min de tolerancia.',
+          'Avisó por teléfono que no podría asistir.'
         ];
 
-  const handleConfirmarTraslado = async (e) => {
+  const handleConfirmar = async (e) => {
     e.preventDefault();
     setProcesando(true);
 
@@ -86,7 +84,7 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
             hora: `${horaStr} hrs`,
             clinica: 'Dental Fine - Clínica Central',
             folio: `#DF-${idCita}`,
-            notas: notasRecepcion.trim() || 'Consulta finalizada y archivada en historial.'
+            notas: notasRecepcion.trim() || 'Consulta finalizada satisfactoriamente.'
           }
         });
       }
@@ -101,7 +99,7 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
           });
         }
         onClose();
-      }, 1200);
+      }, 1000);
     } catch (err) {
       console.error('Error al confirmar cita:', err);
       setProcesando(false);
@@ -119,10 +117,10 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
             </div>
             <div>
               <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                Confirmar Cita y Trasladar al Historial
+                Confirmar Cita
               </h2>
               <p className="text-slate-500 text-xs font-medium mt-0.5">
-                Valida la asistencia del paciente para archivar la cita en el historial de recepción.
+                Registra la asistencia del paciente y el cierre de la consulta.
               </p>
             </div>
           </div>
@@ -130,7 +128,7 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
             type="button"
             onClick={onClose}
             disabled={procesando}
-            className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"
+            className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
           >
             <X size={22} />
           </button>
@@ -141,23 +139,18 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
           {confirmadoExito ? (
             <div className="py-10 flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-300">
               <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-5 shadow-inner">
-                <Archive size={38} />
+                <CheckCircle2 size={40} />
               </div>
               <h3 className="text-2xl font-black text-slate-900 mb-2">
-                ¡Trasladada al Historial!
+                ¡Cita Confirmada!
               </h3>
               <p className="text-slate-500 text-sm max-w-sm">
-                La cita de <span className="font-bold text-slate-800">{nombrePaciente}</span> fue marcada como{' '}
-                <span className="font-black text-emerald-600">{estadoResolucion}</span> y archivada en el historial de recepción.
+                La cita de <span className="font-bold text-slate-800">{nombrePaciente}</span> quedó registrada como{' '}
+                <span className="font-black text-emerald-600">{estadoResolucion}</span>.
               </p>
-              {enviarCorreoAsync && estadoResolucion === 'FINALIZADA' && (
-                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold">
-                  <Sparkles size={14} /> Correo de resumen añadido a la cola de envíos asíncronos
-                </div>
-              )}
             </div>
           ) : (
-            <form id="confirmarCitaForm" onSubmit={handleConfirmarTraslado} className="space-y-6">
+            <form id="confirmarCitaForm" onSubmit={handleConfirmar} className="space-y-6">
               {/* RESUMEN DE LA CITA */}
               <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-200/70 pb-3">
@@ -196,14 +189,14 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
               {/* TIPO DE RESOLUCIÓN */}
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
-                  Estado de Confirmación para Historial *
+                  Estado de Asistencia *
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => {
                       setEstadoResolucion('FINALIZADA');
-                      setNotasRecepcion('Asistencia confirmada en recepción. Consulta concluida satisfactoriamente.');
+                      setNotasRecepcion('Paciente asistió puntualmente. Consulta concluida.');
                     }}
                     className={`p-4 rounded-2xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
                       estadoResolucion === 'FINALIZADA'
@@ -218,7 +211,7 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
                     <div>
                       <p className="text-sm font-black text-slate-900">Asistencia Confirmada</p>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        Marca la cita como <span className="font-bold text-emerald-700">FINALIZADA</span> y la mueve al historial.
+                        El paciente asistió y la consulta fue realizada.
                       </p>
                     </div>
                   </button>
@@ -227,7 +220,7 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
                     type="button"
                     onClick={() => {
                       setEstadoResolucion('INASISTENCIA');
-                      setNotasRecepcion('Paciente no se presentó a la cita programada.');
+                      setNotasRecepcion('El paciente no se presentó a la cita programada.');
                     }}
                     className={`p-4 rounded-2xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
                       estadoResolucion === 'INASISTENCIA'
@@ -240,9 +233,9 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
                       className={estadoResolucion === 'INASISTENCIA' ? 'text-amber-600 shrink-0 mt-0.5' : 'text-slate-400 shrink-0 mt-0.5'}
                     />
                     <div>
-                      <p className="text-sm font-black text-slate-900">Registrar Inasistencia</p>
+                      <p className="text-sm font-black text-slate-900">Inasistencia</p>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        Archiva en el historial con estado <span className="font-bold text-amber-700">INASISTENCIA</span>.
+                        El paciente no acudió a su cita programada.
                       </p>
                     </div>
                   </button>
@@ -253,7 +246,7 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                   <FileText size={14} className="text-indigo-600" />
-                  Notas de Recepción / Cierre de Cita
+                  Observaciones (Opcional)
                 </label>
                 <div className="flex flex-wrap gap-1.5 pb-1">
                   {notasRapidas.map((sugerencia, idx) => (
@@ -271,12 +264,12 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
                   rows="3"
                   value={notasRecepcion}
                   onChange={(e) => setNotasRecepcion(e.target.value)}
-                  placeholder="Escribe observaciones sobre la llegada o conclusión de la cita..."
+                  placeholder="Notas sobre la consulta o asistencia del paciente..."
                   className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all resize-none"
                 />
               </div>
 
-              {/* INTEGRACIÓN CON COLA DE CORREOS ASÍNCRONA (HU09-T01) */}
+              {/* NOTIFICACIÓN POR CORREO */}
               {estadoResolucion === 'FINALIZADA' && (
                 <label className="flex items-start gap-3 p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 cursor-pointer hover:bg-indigo-50 transition-colors">
                   <input
@@ -288,10 +281,10 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
                   <div className="flex-1">
                     <div className="flex items-center gap-1.5 text-xs font-black text-indigo-950">
                       <Mail size={14} className="text-indigo-600" />
-                      Encolar comprobante de asistencia por correo (Asíncrono)
+                      Enviar comprobante de atención por correo
                     </div>
                     <p className="text-[11px] text-indigo-700/80 mt-0.5">
-                      Se enviará en segundo plano a <span className="font-bold">{correoPaciente}</span> usando la plantilla configurada de resumen de atención.
+                      Se enviará automáticamente el resumen de la consulta a <span className="font-bold">{correoPaciente}</span>.
                     </p>
                   </div>
                 </label>
@@ -323,7 +316,7 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
                 </>
               ) : (
                 <>
-                  <Archive size={18} /> Confirmar y Mover al Historial
+                  <CheckCircle2 size={18} /> Confirmar
                 </>
               )}
             </button>

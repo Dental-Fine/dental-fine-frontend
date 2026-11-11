@@ -1,6 +1,6 @@
-const STORAGE_PLANTILLAS_KEY = 'dental_fine_email_templates_v1';
-const STORAGE_COLA_KEY = 'dental_fine_email_queue_v1';
-const STORAGE_CONFIG_KEY = 'dental_fine_email_config_v1';
+const STORAGE_PLANTILLAS_KEY = 'dental_fine_email_templates_v2';
+const STORAGE_COLA_KEY = 'dental_fine_email_queue_v2';
+const STORAGE_CONFIG_KEY = 'dental_fine_email_config_v2';
 
 export const VARIABLES_DISPONIBLES = [
   { tag: '{{paciente}}', descripcion: 'Nombre completo del paciente', ejemplo: 'Juan Pérez García' },
@@ -30,12 +30,12 @@ const PLANTILLAS_INICIALES = [
   },
   {
     id: 'RESUMEN_ATENCION',
-    nombre: 'Confirmación de Asistencia y Pase a Historial',
-    evento: 'Al confirmar asistencia en recepción (HU05)',
+    nombre: 'Comprobante de Atención',
+    evento: 'Al confirmar asistencia en recepción',
     asunto: 'Resumen de tu consulta en {{clinica}} - Folio {{folio}}',
     encabezado: 'Gracias por confiar en Dental Fine',
     cuerpo:
-      'Estimado(a) {{paciente}},\n\nHemos registrado la conclusión de tu consulta en recepción y los detalles han sido trasladados a tu historial clínico.\n\nEspecialista: {{dentista}}\nServicio: {{servicio}}\nFecha de atención: {{fecha}} a las {{hora}}\nObservaciones de cierre: {{notas}}\n\nPuedes consultar tu expediente actualizado desde el Portal de Pacientes.',
+      'Estimado(a) {{paciente}},\n\nTe compartimos el resumen de tu consulta realizada en nuestra clínica.\n\nEspecialista: {{dentista}}\nServicio: {{servicio}}\nFecha de atención: {{fecha}} a las {{hora}}\nObservaciones: {{notas}}\n\nPuedes consultar tu expediente actualizado desde el Portal de Pacientes.',
     piePagina: 'Dental Fine - Cuidando tu sonrisa con tecnología y calidez.',
     colorAcento: '#10b981',
     activa: true,
@@ -103,7 +103,7 @@ const COLA_INICIAL = [
   {
     id: 'JOB-902',
     plantillaId: 'RESUMEN_ATENCION',
-    plantillaNombre: 'Confirmación de Asistencia y Pase a Historial',
+    plantillaNombre: 'Comprobante de Atención',
     destinatarioNombre: 'Carlos Eduardo Ramírez',
     destinatarioCorreo: 'carlos.ramirez@correo.com',
     asuntoRenderizado: 'Resumen de tu consulta en Dental Fine - Clínica Central - Folio #DF-102',

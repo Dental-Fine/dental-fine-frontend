@@ -234,10 +234,10 @@ export default function CorreosNotificaciones() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            <Mail className="text-indigo-600" size={32} /> Plantillas de Correo y Cola Asíncrona
+            <Mail className="text-indigo-600" size={32} /> Correos y Notificaciones
           </h1>
           <p className="text-slate-500 mt-1">
-            Configuración de plantillas dinámicas y monitoreo en tiempo real de la cola de envíos asíncronos.
+            Configuración de plantillas de correo y cola de envíos automáticos.
           </p>
         </div>
 
@@ -254,11 +254,11 @@ export default function CorreosNotificaciones() {
             {config.workerActivo ? (
               <>
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                <Pause size={15} /> Worker Activo (Pausar)
+                <Pause size={15} /> Envío Automático: Activo
               </>
             ) : (
               <>
-                <Play size={15} /> Worker en Pausa (Reanudar)
+                <Play size={15} /> Envío Automático: En Pausa
               </>
             )}
           </button>
@@ -268,7 +268,7 @@ export default function CorreosNotificaciones() {
             onClick={() => setModalNuevoEnvio(true)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-5 rounded-2xl flex items-center gap-2 shadow-lg shadow-indigo-600/20 text-xs transition-all active:scale-95 cursor-pointer"
           >
-            <Plus size={16} /> Encolar Envío Asíncrono
+            <Plus size={16} /> Nuevo Envío
           </button>
         </div>
       </div>
@@ -357,7 +357,7 @@ export default function CorreosNotificaciones() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          <FileCode size={16} /> Configuración de Plantillas
+          <FileCode size={16} /> Plantillas de Correo
         </button>
 
         <button
@@ -369,7 +369,7 @@ export default function CorreosNotificaciones() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          <Layers size={16} /> Cola de Envíos Asíncronos
+          <Layers size={16} /> Cola de Envíos
           {totalEnCola > 0 && (
             <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-400 text-slate-950 font-black">
               {totalEnCola}
@@ -386,7 +386,7 @@ export default function CorreosNotificaciones() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          <Settings size={16} /> Parámetros de Cola y SMTP
+          <Settings size={16} /> Configuración
         </button>
       </div>
 
@@ -704,8 +704,8 @@ export default function CorreosNotificaciones() {
                   >
                     <div className="space-y-1.5 flex-1">
                       <div className="flex flex-wrap items-center gap-2.5">
-                        <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
-                          {job.id}
+                        <span className="text-xs font-black text-slate-700 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
+                          #{job.id}
                         </span>
 
                         <span

@@ -317,17 +317,11 @@ export default function Inicio() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-200/50 rounded-full blur-3xl -z-10 translate-x-1/2 -translate-y-1/2"></div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Panel de Recepción</h1>
           <p className="text-slate-500 mt-1">
-            Confirmación de asistencia, control de agenda diaria y archivo en historial clínico.
+            Agenda general y estatus diario de consultas clínicas.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/admin/correos')}
-            className="bg-white hover:bg-indigo-50 text-indigo-600 border border-indigo-200 font-bold py-3 px-5 rounded-2xl flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
-          >
-            <Sparkles size={16} /> Cola de Correos Async
-          </button>
           <button
             onClick={abrirModalNuevaCita}
             className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-2xl flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition-all active:scale-95 text-xs cursor-pointer"
@@ -337,21 +331,19 @@ export default function Inicio() {
         </div>
       </div>
 
-      {/* BANNER DE CONFIRMACIÓN Y TRASLADO AL HISTORIAL */}
+      {/* BANNER DE CONFIRMACIÓN */}
       {notificacionTraslado && (
         <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in duration-300">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
-              <Archive size={20} />
+              <CheckCircle2 size={20} />
             </div>
             <div>
               <p className="text-sm font-black">
-                Cita #{notificacionTraslado.id} confirmada ({notificacionTraslado.estado}) y trasladada al Historial
+                Cita #{notificacionTraslado.id} confirmada ({notificacionTraslado.estado})
               </p>
               <p className="text-xs text-emerald-700 font-medium">
-                {notificacionTraslado.jobCorreo
-                  ? `Se encoló el envío asíncrono (${notificacionTraslado.jobCorreo.id}) con el resumen de atención.`
-                  : 'El registro ya está disponible para consulta en la pestaña de Historial.'}
+                El estado de la consulta ha sido actualizado.
               </p>
             </div>
           </div>
@@ -363,7 +355,7 @@ export default function Inicio() {
               }}
               className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition-colors cursor-pointer"
             >
-              Ver en Historial
+              Ver Historial
             </button>
             <button
               onClick={() => setNotificacionTraslado(null)}
@@ -383,7 +375,7 @@ export default function Inicio() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">
-                Por Confirmar (Día)
+                Citas Pendientes (Día)
               </p>
               <h3 className="text-3xl font-black text-slate-800">{citasActivasDelDia.length}</h3>
               <p className="text-[11px] text-slate-400 font-semibold mt-1">
@@ -396,7 +388,7 @@ export default function Inicio() {
           </div>
         </div>
 
-        {/* Tarjeta 2: Confirmadas en Historial */}
+        {/* Tarjeta 2: Citas Atendidas */}
         <div
           onClick={() => setPestanaRecepcion('historial')}
           className="cursor-pointer relative overflow-hidden bg-white/60 backdrop-blur-xl border border-white/80 p-5 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(16,185,129,0.12)] transition-all"
@@ -405,10 +397,10 @@ export default function Inicio() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">
-                Confirmadas en Historial
+                Citas Atendidas
               </p>
               <h3 className="text-3xl font-black text-emerald-700">{totalConfirmadasHistorial}</h3>
-              <p className="text-[11px] text-emerald-600 font-bold mt-1">Clic para abrir archivo →</p>
+              <p className="text-[11px] text-emerald-600 font-bold mt-1">Ver historial →</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
               <CheckCircle2 size={20} />
@@ -544,19 +536,19 @@ export default function Inicio() {
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-5 text-xs font-bold text-slate-500 border-t border-slate-100 pt-6">
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Por Confirmar
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Pendientes
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Confirmadas (Historial)
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Atendidas
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-500" /> Canceladas / Inasistencia
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500" /> Canceladas
             </div>
           </div>
         </div>
 
         {/* ==========================================
-            LADO DERECHO: VISTA DE RECEPCIÓN (AGENDA ACTIVA Y TRASLADO A HISTORIAL)
+            LADO DERECHO: VISTA DE RECEPCIÓN
             ========================================== */}
         <div className="lg:col-span-6 flex flex-col h-[calc(100vh-11rem)] min-h-[540px]">
           <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm flex flex-col flex-1 overflow-hidden">
@@ -572,9 +564,6 @@ export default function Inicio() {
                       month: 'long'
                     })}
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
-                    Confirma la llegada del paciente para archivar la cita en el historial.
-                  </p>
                 </div>
 
                 {/* SELECTOR DE PESTAÑA */}
