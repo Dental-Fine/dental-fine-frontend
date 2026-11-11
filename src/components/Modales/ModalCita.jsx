@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, Stethoscope, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { ApiService } from '../../services/api';
+import { EmailQueueService } from '../../services/emailQueueService';
 
 export default function ModalCita({ isOpen, onClose, citaEditando }) {
   const [cargando, setCargando] = useState(false);
@@ -140,11 +141,36 @@ export default function ModalCita({ isOpen, onClose, citaEditando }) {
     const fechaHoraCombinada = `${fecha}T${hora}:00`;
 
     try {
+      let respuestaCita = null;
       if (citaEditando) {
-        await ApiService.editarCita(citaEditando.id, pacienteId, dentistaId, tipoServicioId, fechaHoraCombinada);
+        respuestaCita = await ApiService.editarCita(citaEditando.id, pacienteId, dentistaId, tipoServicioId, fechaHoraCombinada);
       } else {
-        await ApiService.agendarCita(pacienteId, dentistaId, tipoServicioId, fechaHoraCombinada);
+        respuestaCita = await ApiService.agendarCita(pacienteId, dentistaId, tipoServicioId, fechaHoraCombinada);
       }
+
+      const configCola = EmailQueueService.obtenerConfiguracion();
+      if (configCola.encolarAlAgendar !== false) {
+        const pacObj = pacientes.find((p) => String(p.id || p.idPaciente) === String(pacienteId));
+        const denObj = dentistas.find((d) => String(d.id || d.idDentista) === String(dentistaId));
+        const srvObj = servicios.find((s) => String(s.id || s.idTipoServicio) === String(tipoServicioId));
+
+        EmailQueueService.encolarCorreo({
+          plantillaId: 'CONFIRMACION_CITA',
+          prioridad: 'ALTA',
+          variables: {
+            paciente: pacObj ? `${pacObj.nombre} ${pacObj.apellidos || ''}`.trim() : 'Paciente Registrado',
+            correo: pacObj?.correo || 'paciente@dentalfine.com',
+            dentista: denObj ? `Dr(a). ${denObj.nombre}` : 'Especialista Dental Fine',
+            servicio: srvObj ? srvObj.nombre : 'Consulta Dental',
+            fecha,
+            hora: `${hora} hrs`,
+            clinica: 'Dental Fine - Clínica Central',
+            folio: `#DF-${respuestaCita?.idCita || citaEditando?.id || Math.floor(100 + Math.random() * 900)}`,
+            notas: citaEditando ? 'Horario reprogramado desde recepción.' : 'Cita agendada desde recepción.'
+          }
+        });
+      }
+
       setExito(true);
       setTimeout(() => { setExito(false); onClose(true); }, 1500);
     } catch (err) {

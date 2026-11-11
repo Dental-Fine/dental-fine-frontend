@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, CreditCard, LogOut, Activity, Menu } from 'lucide-react';
+import { Home, Users, CreditCard, LogOut, Activity, Menu, Mail } from 'lucide-react';
 import logoDentalFine from '../assets/DentalFine_Logo.png'; 
 
 export default function MainLayout() {
@@ -109,6 +109,13 @@ export default function MainLayout() {
             <div className="min-w-[20px] flex justify-center"><CreditCard size={20} className={location.pathname.startsWith('/admin/pagos') ? 'text-indigo-200' : 'text-slate-500'} /></div>
             <span className={`whitespace-nowrap transition-all duration-300 ease-in-out ${isExpanded ? 'opacity-100 ml-2' : 'opacity-0 ml-0 w-0'}`}>
               Caja y Pagos
+            </span>
+          </button>
+
+          <button onClick={() => navigate('/admin/correos')} className={navItemClass('/admin/correos')} title={!isExpanded ? "Correos y Cola Async" : ""}>
+            <div className="min-w-[20px] flex justify-center"><Mail size={20} className={location.pathname.startsWith('/admin/correos') ? 'text-indigo-200' : 'text-slate-500'} /></div>
+            <span className={`whitespace-nowrap transition-all duration-300 ease-in-out ${isExpanded ? 'opacity-100 ml-2' : 'opacity-0 ml-0 w-0'}`}>
+              Correos y Cola Async
             </span>
           </button>
 

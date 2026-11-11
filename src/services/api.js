@@ -137,14 +137,74 @@ export const ApiService = {
   },
 
   // === CITAS ===
+  obtenerHistorialConfirmacionesLocal: () => {
+    try {
+      return JSON.parse(localStorage.getItem('citas_historial_recepcion_v1') || '{}');
+    } catch (e) {
+      return {};
+    }
+  },
+
   obtenerCitas: async () => {
-    const response = await fetch(`${BASE_URL}/citas`, { headers: getHeaders() });
-    if (!response.ok) {
-      console.error("Error al obtener citas. Status:", response.status);
-      try { console.error(await response.text()); } catch(e){}
+    try {
+      const response = await fetch(`${BASE_URL}/citas`, { headers: getHeaders() });
+      if (!response.ok) {
+        console.error("Error al obtener citas. Status:", response.status);
+        try { console.error(await response.text()); } catch(e){}
+        return [];
+      }
+      const data = await response.json();
+      const historialLocal = ApiService.obtenerHistorialConfirmacionesLocal();
+      return (data || []).map((c) => {
+        const idCita = String(c.id || c.idCita);
+        if (historialLocal[idCita]) {
+          return {
+            ...c,
+            ...historialLocal[idCita]
+          };
+        }
+        return c;
+      });
+    } catch (error) {
+      console.error("Error de red al obtener citas:", error);
       return [];
     }
-    return await response.json();
+  },
+
+  confirmarCita: async (idCita, datosConfirmacion = {}) => {
+    const estadoFinal = datosConfirmacion.estado || 'FINALIZADA';
+    const registroConfirmacion = {
+      estado: estadoFinal,
+      notasRecepcion: datosConfirmacion.notasRecepcion || '',
+      horaConfirmacion: datosConfirmacion.horaConfirmacion || new Date().toISOString(),
+      confirmadoPor: datosConfirmacion.confirmadoPor || 'Recepción Dental Fine',
+      trasladadoAHistorial: true
+    };
+
+    // Intentar sincronizar con el backend si expone el endpoint de estado
+    try {
+      await fetch(`${BASE_URL}/citas/${idCita}/estado?estado=${encodeURIComponent(estadoFinal)}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(registroConfirmacion)
+      });
+    } catch (e) {
+      console.warn("Sincronización local de confirmación aplicada:", e);
+    }
+
+    // Persistir estado de confirmación y traslado al historial en localStorage
+    const actual = ApiService.obtenerHistorialConfirmacionesLocal();
+    actual[String(idCita)] = registroConfirmacion;
+    localStorage.setItem('citas_historial_recepcion_v1', JSON.stringify(actual));
+
+    return { id: idCita, ...registroConfirmacion };
+  },
+
+  revertirCitaAAgenda: async (idCita) => {
+    const actual = ApiService.obtenerHistorialConfirmacionesLocal();
+    delete actual[String(idCita)];
+    localStorage.setItem('citas_historial_recepcion_v1', JSON.stringify(actual));
+    return { id: idCita, estado: 'PENDIENTE', trasladadoAHistorial: false };
   },
 
   agendarCita: async (pacienteId, dentistaId, tipoServicioId, fechaHora) => {

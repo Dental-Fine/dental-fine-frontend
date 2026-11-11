@@ -14,6 +14,7 @@ import Servicios from '../pages/Dashboard/Servicios';
 import Expedientes from '../pages/Dashboard/Expedientes';
 import ExpedienteDetalle from '../pages/Dashboard/ExpedienteDetalle';
 import Pagos from '../pages/Dashboard/Pagos';
+import CorreosNotificaciones from '../pages/Dashboard/CorreosNotificaciones';
 
 // Páginas del Paciente
 import { DashboardPaciente } from '../pages/Pacientes/DashboardPaciente';
@@ -38,6 +39,7 @@ export const AppRouter = () => {
                     <Route path="expedientes" element={<Expedientes />} />
                     <Route path="expediente/:id" element={<ExpedienteDetalle />} /> 
                     <Route path="pagos" element={<Pagos />} /> 
+                    <Route path="correos" element={<CorreosNotificaciones />} />
                 </Route>
 
                 {/* Rutas del Paciente */}
