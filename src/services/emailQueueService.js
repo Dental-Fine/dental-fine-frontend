@@ -1,140 +1,74 @@
-const STORAGE_PLANTILLAS_KEY = 'dental_fine_email_templates_v2';
-const STORAGE_COLA_KEY = 'dental_fine_email_queue_v2';
-const STORAGE_CONFIG_KEY = 'dental_fine_email_config_v2';
+const STORAGE_PLANTILLAS_KEY = 'dental_fine_email_templates_v4';
 
+/**
+ * Variables dinámicas sincronizadas con los datos de la cita (EmailService):
+ * destinatario, nombrePaciente, doctor, fechaHora
+ */
 export const VARIABLES_DISPONIBLES = [
-  { tag: '{{paciente}}', descripcion: 'Nombre completo del paciente', ejemplo: 'Juan Pérez García' },
-  { tag: '{{correo}}', descripcion: 'Correo electrónico del destinatario', ejemplo: 'juan.perez@correo.com' },
-  { tag: '{{dentista}}', descripcion: 'Especialista asignado', ejemplo: 'Dra. Elena Solís' },
+  { tag: '{{nombrePaciente}}', descripcion: 'Nombre completo del paciente', ejemplo: 'Juan Pérez García' },
+  { tag: '{{destinatario}}', descripcion: 'Correo electrónico del paciente', ejemplo: 'juan.perez@correo.com' },
+  { tag: '{{doctor}}', descripcion: 'Doctor / Dentista asignado', ejemplo: 'Dra. Elena Solís' },
+  { tag: '{{fechaHora}}', descripcion: 'Fecha y hora de la cita médica', ejemplo: '2026-11-12 a las 10:30 hrs' },
   { tag: '{{servicio}}', descripcion: 'Tratamiento o servicio dental', ejemplo: 'Limpieza Dental Ultrasónica' },
-  { tag: '{{fecha}}', descripcion: 'Fecha de la cita médica', ejemplo: '15 de Noviembre, 2026' },
-  { tag: '{{hora}}', descripcion: 'Horario programado', ejemplo: '10:30 hrs' },
-  { tag: '{{clinica}}', descripcion: 'Nombre de la sucursal', ejemplo: 'Dental Fine - Clínica Central' },
-  { tag: '{{folio}}', descripcion: 'Folio o ID de la cita', ejemplo: '#DF-1042' },
-  { tag: '{{notas}}', descripcion: 'Observaciones o indicaciones', ejemplo: 'Asistir 10 minutos antes de la consulta.' }
+  { tag: '{{clinica}}', descripcion: 'Nombre de la clínica', ejemplo: 'Dental Fine - Clínica Central' },
+  { tag: '{{folio}}', descripcion: 'Folio o ID de la cita', ejemplo: '#DF-101' },
+  { tag: '{{notas}}', descripcion: 'Observaciones o indicaciones', ejemplo: 'Favor de asistir 10 minutos antes de su cita.' }
 ];
+
+export const BODY_POR_DEFECTO_CITA =
+  'Hola {{nombrePaciente}},\n\nTe saludamos de {{clinica}} para confirmarte los detalles de tu cita dental:\n\n• Especialista: {{doctor}}\n• Tratamiento: {{servicio}}\n• Fecha y hora: {{fechaHora}}\n• Folio: {{folio}}\n\nIndicaciones:\n{{notas}}\n\nSi necesitas reprogramar o tienes alguna duda, puedes responder directamente a este correo.\n\nAtentamente,\n{{doctor}}\n{{clinica}}';
 
 const PLANTILLAS_INICIALES = [
   {
     id: 'CONFIRMACION_CITA',
     nombre: 'Confirmación de Cita Agendada',
-    evento: 'Al agendar o confirmar cita',
-    asunto: 'Confirmación de tu cita en {{clinica}} - {{fecha}} ({{folio}})',
+    evento: 'Al crear o reprogramar una cita',
+    asunto: 'Confirmación de tu cita en {{clinica}} - {{fechaHora}}',
     encabezado: '¡Tu cita está confirmada!',
-    cuerpo:
-      'Hola {{paciente}},\n\nTe confirmamos que tu cita para el tratamiento de {{servicio}} con {{dentista}} ha sido programada exitosamente.\n\nFecha: {{fecha}}\nHorario: {{hora}}\nSucursal: {{clinica}}\nFolio de seguimiento: {{folio}}\n\nIndicaciones: {{notas}}',
+    cuerpo: BODY_POR_DEFECTO_CITA,
     piePagina: 'Si necesitas reprogramar o cancelar, por favor avísanos con al menos 24 horas de anticipación.',
     colorAcento: '#4f46e5',
     activa: true,
-    actualizadoEn: '2026-11-10T09:00:00'
+    actualizadoEn: '2026-11-12T09:00:00'
   },
   {
     id: 'RESUMEN_ATENCION',
     nombre: 'Comprobante de Atención',
     evento: 'Al confirmar asistencia en recepción',
-    asunto: 'Resumen de tu consulta en {{clinica}} - Folio {{folio}}',
+    asunto: 'Resumen de tu consulta en {{clinica}} - {{folio}}',
     encabezado: 'Gracias por confiar en Dental Fine',
     cuerpo:
-      'Estimado(a) {{paciente}},\n\nTe compartimos el resumen de tu consulta realizada en nuestra clínica.\n\nEspecialista: {{dentista}}\nServicio: {{servicio}}\nFecha de atención: {{fecha}} a las {{hora}}\nObservaciones: {{notas}}\n\nPuedes consultar tu expediente actualizado desde el Portal de Pacientes.',
+      'Estimado(a) {{nombrePaciente}},\n\nTe compartimos el resumen de tu consulta realizada en {{clinica}}:\n\n• Especialista: {{doctor}}\n• Tratamiento: {{servicio}}\n• Fecha y hora: {{fechaHora}}\n• Folio: {{folio}}\n\nObservaciones del especialista:\n{{notas}}\n\nAtentamente,\n{{doctor}}\n{{clinica}}',
     piePagina: 'Dental Fine - Cuidando tu sonrisa con tecnología y calidez.',
     colorAcento: '#10b981',
     activa: true,
-    actualizadoEn: '2026-11-10T09:15:00'
+    actualizadoEn: '2026-11-12T09:15:00'
   },
   {
     id: 'RECORDATORIO_24H',
-    nombre: 'Recordatorio Automático (24h antes)',
-    evento: 'Programado 24h antes de la cita',
-    asunto: 'Recordatorio: Mañana tienes cita con {{dentista}} a las {{hora}}',
+    nombre: 'Recordatorio de Cita',
+    evento: 'Recordatorio previo para el paciente',
+    asunto: 'Recordatorio de tu cita con {{doctor}} - {{fechaHora}}',
     encabezado: 'Recordatorio de Consulta Dental',
     cuerpo:
-      'Hola {{paciente}},\n\nTe recordamos que mañana {{fecha}} a las {{hora}} te esperamos en {{clinica}} para tu sesión de {{servicio}} con {{dentista}}.\n\nNotas adicionales: {{notas}}',
+      'Hola {{nombrePaciente}},\n\nTe recordamos que tienes una cita programada en {{clinica}}:\n\n• Especialista: {{doctor}}\n• Tratamiento: {{servicio}}\n• Fecha y hora: {{fechaHora}}\n\nIndicaciones:\n{{notas}}\n\n¡Te esperamos!\n{{clinica}}',
     piePagina: 'Te sugerimos llegar 10 minutos antes para tu registro en recepción.',
     colorAcento: '#0ea5e9',
     activa: true,
-    actualizadoEn: '2026-11-10T09:30:00'
+    actualizadoEn: '2026-11-12T09:30:00'
   },
   {
     id: 'CANCELACION_CITA',
     nombre: 'Notificación de Cancelación',
-    evento: 'Al cancelar cita desde recepción o portal',
+    evento: 'Al cancelar una cita médica',
     asunto: 'Aviso de cancelación de cita {{folio}} - {{clinica}}',
     encabezado: 'Tu cita ha sido cancelada',
     cuerpo:
-      'Hola {{paciente}},\n\nTe informamos que la cita {{folio}} programada para el {{fecha}} a las {{hora}} con {{dentista}} ({{servicio}}) ha sido cancelada en nuestro sistema.\n\nMotivo / Nota: {{notas}}',
+      'Hola {{nombrePaciente}},\n\nTe informamos que la cita {{folio}} programada para el {{fechaHora}} con {{doctor}} ({{servicio}}) ha sido cancelada.\n\nMotivo / Observaciones:\n{{notas}}\n\nPuedes comunicarte con nosotros para reagendar cuando gustes.\n\nAtentamente,\n{{clinica}}',
     piePagina: 'Puedes agendar un nuevo horario en cualquier momento desde nuestro portal o llamando a recepción.',
     colorAcento: '#ef4444',
     activa: true,
-    actualizadoEn: '2026-11-10T09:45:00'
-  }
-];
-
-const CONFIG_INICIAL = {
-  remitenteNombre: 'Dental Fine Clínica Dental',
-  remitenteCorreo: 'notificaciones@dentalfine.com',
-  servidorSmtp: 'smtp.dentalfine.com:587 (TLS)',
-  concurrenciaWorkers: 3,
-  maxReintentos: 3,
-  intervaloSegundos: 4,
-  workerActivo: true,
-  encolarAlConfirmarRecepcion: true,
-  encolarAlAgendar: true
-};
-
-const COLA_INICIAL = [
-  {
-    id: 'JOB-901',
-    plantillaId: 'CONFIRMACION_CITA',
-    plantillaNombre: 'Confirmación de Cita Agendada',
-    destinatarioNombre: 'María Fernanda López',
-    destinatarioCorreo: 'mfernanda.lopez@correo.com',
-    asuntoRenderizado: 'Confirmación de tu cita en Dental Fine - Clínica Central - 2026-11-10 (#DF-101)',
-    cuerpoRenderizado:
-      'Hola María Fernanda López,\n\nTe confirmamos que tu cita para el tratamiento de Limpieza Dental con Dra. Elena Solís ha sido programada exitosamente.\n\nFecha: 2026-11-10\nHorario: 10:00 hrs\nSucursal: Dental Fine - Clínica Central\nFolio de seguimiento: #DF-101\n\nIndicaciones: Asistir 10 minutos antes.',
-    prioridad: 'ALTA',
-    estado: 'ENVIADO',
-    intentos: 1,
-    maxIntentos: 3,
-    creadoEn: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-    procesadoEn: new Date(Date.now() - 1000 * 60 * 17).toISOString(),
-    latenciaMs: 340,
-    errorDetalle: null
-  },
-  {
-    id: 'JOB-902',
-    plantillaId: 'RESUMEN_ATENCION',
-    plantillaNombre: 'Comprobante de Atención',
-    destinatarioNombre: 'Carlos Eduardo Ramírez',
-    destinatarioCorreo: 'carlos.ramirez@correo.com',
-    asuntoRenderizado: 'Resumen de tu consulta en Dental Fine - Clínica Central - Folio #DF-102',
-    cuerpoRenderizado:
-      'Estimado(a) Carlos Eduardo Ramírez,\n\nHemos registrado la conclusión de tu consulta en recepción y los detalles han sido trasladados a tu historial clínico.\n\nEspecialista: Dr. Roberto Méndez\nServicio: Resina Estética\nFecha de atención: 2026-11-10 a las 11:00 hrs\nObservaciones de cierre: Paciente atendido sin complicaciones.',
-    prioridad: 'NORMAL',
-    estado: 'EN_COLA',
-    intentos: 0,
-    maxIntentos: 3,
-    creadoEn: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
-    procesadoEn: null,
-    latenciaMs: null,
-    errorDetalle: null
-  },
-  {
-    id: 'JOB-903',
-    plantillaId: 'RECORDATORIO_24H',
-    plantillaNombre: 'Recordatorio Automático (24h antes)',
-    destinatarioNombre: 'Ana Sofía Hernández',
-    destinatarioCorreo: 'anasofia.hdz@dominio-invalido.test',
-    asuntoRenderizado: 'Recordatorio: Mañana tienes cita con Dra. Elena Solís a las 16:00 hrs',
-    cuerpoRenderizado:
-      'Hola Ana Sofía Hernández,\n\nTe recordamos que mañana a las 16:00 hrs te esperamos en Dental Fine - Clínica Central para tu sesión de Ortodoncia Control.',
-    prioridad: 'BAJA',
-    estado: 'ERROR',
-    intentos: 3,
-    maxIntentos: 3,
-    creadoEn: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-    procesadoEn: new Date(Date.now() - 1000 * 60 * 32).toISOString(),
-    latenciaMs: 1250,
-    errorDetalle: 'SMTP 550 5.1.1: Buzón de destinatario no alcanzable tras 3 reintentos asíncronos.'
+    actualizadoEn: '2026-11-12T09:45:00'
   }
 ];
 
@@ -170,128 +104,150 @@ export const EmailQueueService = {
     return plantillas;
   },
 
-  obtenerConfiguracion: () => {
-    try {
-      const guardada = localStorage.getItem(STORAGE_CONFIG_KEY);
-      if (guardada) return { ...CONFIG_INICIAL, ...JSON.parse(guardada) };
-    } catch (e) {
-      console.error('Error leyendo configuración de cola:', e);
-    }
-    localStorage.setItem(STORAGE_CONFIG_KEY, JSON.stringify(CONFIG_INICIAL));
-    return CONFIG_INICIAL;
-  },
+  normalizarVariables: (variables = {}) => {
+    const nombrePaciente =
+      variables.nombrePaciente || variables.paciente || 'Paciente Dental Fine';
+    const destinatario =
+      variables.destinatario || variables.correo || 'paciente@correo.com';
+    const doctor =
+      variables.doctor || variables.dentista || 'Dr(a). Especialista Dental Fine';
+    const fecha = variables.fecha || new Date().toISOString().split('T')[0];
+    const hora = variables.hora || '10:00 hrs';
+    const fechaHora =
+      variables.fechaHora || `${fecha} a las ${hora}`;
 
-  guardarConfiguracion: (nuevaConfig) => {
-    const fusionada = { ...EmailQueueService.obtenerConfiguracion(), ...nuevaConfig };
-    localStorage.setItem(STORAGE_CONFIG_KEY, JSON.stringify(fusionada));
-    return fusionada;
-  },
-
-  obtenerCola: () => {
-    try {
-      const guardada = localStorage.getItem(STORAGE_COLA_KEY);
-      if (guardada) return JSON.parse(guardada);
-    } catch (e) {
-      console.error('Error leyendo cola de correos:', e);
-    }
-    localStorage.setItem(STORAGE_COLA_KEY, JSON.stringify(COLA_INICIAL));
-    return COLA_INICIAL;
-  },
-
-  guardarCola: (cola) => {
-    localStorage.setItem(STORAGE_COLA_KEY, JSON.stringify(cola));
-    return cola;
+    return {
+      nombrePaciente,
+      destinatario,
+      doctor,
+      fechaHora,
+      paciente: nombrePaciente,
+      correo: destinatario,
+      dentista: doctor,
+      servicio: variables.servicio || 'Consulta Dental General',
+      fecha,
+      hora,
+      clinica: variables.clinica || 'Dental Fine - Clínica Central',
+      folio: variables.folio || '#DF-101',
+      notas:
+        variables.notas ||
+        'Favor de asistir 10 minutos antes de su cita.'
+    };
   },
 
   renderizarTexto: (texto = '', variables = {}) => {
-    const valoresPorDefecto = {
-      paciente: variables.paciente || 'Juan Pérez García',
-      correo: variables.correo || 'paciente@dentalfine.com',
-      dentista: variables.dentista || 'Dra. Elena Solís',
-      servicio: variables.servicio || 'Consulta Dental General',
-      fecha: variables.fecha || new Date().toISOString().split('T')[0],
-      hora: variables.hora || '10:30 hrs',
-      clinica: variables.clinica || 'Dental Fine - Clínica Central',
-      folio: variables.folio || '#DF-1042',
-      notas: variables.notas || 'Sin observaciones adicionales.'
-    };
+    const v = EmailQueueService.normalizarVariables(variables);
 
     return String(texto)
-      .replace(/\{\{paciente\}\}/g, valoresPorDefecto.paciente)
-      .replace(/\{\{correo\}\}/g, valoresPorDefecto.correo)
-      .replace(/\{\{dentista\}\}/g, valoresPorDefecto.dentista)
-      .replace(/\{\{servicio\}\}/g, valoresPorDefecto.servicio)
-      .replace(/\{\{fecha\}\}/g, valoresPorDefecto.fecha)
-      .replace(/\{\{hora\}\}/g, valoresPorDefecto.hora)
-      .replace(/\{\{clinica\}\}/g, valoresPorDefecto.clinica)
-      .replace(/\{\{folio\}\}/g, valoresPorDefecto.folio)
-      .replace(/\{\{notas\}\}/g, valoresPorDefecto.notas);
+      .replace(/\{\{nombrePaciente\}\}/g, v.nombrePaciente)
+      .replace(/\{\{destinatario\}\}/g, v.destinatario)
+      .replace(/\{\{doctor\}\}/g, v.doctor)
+      .replace(/\{\{fechaHora\}\}/g, v.fechaHora)
+      .replace(/\{\{paciente\}\}/g, v.paciente)
+      .replace(/\{\{correo\}\}/g, v.correo)
+      .replace(/\{\{dentista\}\}/g, v.dentista)
+      .replace(/\{\{servicio\}\}/g, v.servicio)
+      .replace(/\{\{fecha\}\}/g, v.fecha)
+      .replace(/\{\{hora\}\}/g, v.hora)
+      .replace(/\{\{clinica\}\}/g, v.clinica)
+      .replace(/\{\{folio\}\}/g, v.folio)
+      .replace(/\{\{notas\}\}/g, v.notas);
   },
 
-  encolarCorreo: ({
-    plantillaId = 'CONFIRMACION_CITA',
-    variables = {},
-    prioridad = 'NORMAL',
-    simularError = false
-  }) => {
+  generarBorradorCorreo: ({ plantillaId = 'CONFIRMACION_CITA', variables = {} } = {}) => {
     const plantillas = EmailQueueService.obtenerPlantillas();
-    const config = EmailQueueService.obtenerConfiguracion();
-    const plantilla = plantillas.find((p) => p.id === plantillaId) || plantillas[0];
+    const plantilla =
+      plantillas.find((p) => p.id === plantillaId) || plantillas[0];
+    const vars = EmailQueueService.normalizarVariables(variables);
 
-    const asuntoRenderizado = EmailQueueService.renderizarTexto(plantilla.asunto, variables);
-    const cuerpoRenderizado = EmailQueueService.renderizarTexto(plantilla.cuerpo, variables);
-
-    const nuevoJob = {
-      id: `JOB-${Math.floor(1000 + Math.random() * 9000)}`,
+    return {
       plantillaId: plantilla.id,
       plantillaNombre: plantilla.nombre,
-      destinatarioNombre: variables.paciente || 'Paciente Dental Fine',
-      destinatarioCorreo: variables.correo || 'paciente@dentalfine.com',
-      asuntoRenderizado,
-      cuerpoRenderizado,
-      encabezado: plantilla.encabezado,
-      piePagina: plantilla.piePagina,
-      colorAcento: plantilla.colorAcento,
-      prioridad,
-      estado: 'EN_COLA',
-      intentos: 0,
-      maxIntentos: config.maxReintentos || 3,
-      creadoEn: new Date().toISOString(),
-      procesadoEn: null,
-      latenciaMs: null,
-      errorDetalle: null,
-      simularError
+      destinatario: vars.destinatario,
+      nombrePaciente: vars.nombrePaciente,
+      doctor: vars.doctor,
+      fechaHora: vars.fechaHora,
+      asunto: EmailQueueService.renderizarTexto(plantilla.asunto, vars),
+      cuerpo: EmailQueueService.renderizarTexto(
+        plantilla.cuerpo || BODY_POR_DEFECTO_CITA,
+        vars
+      ),
+      piePagina: plantilla.piePagina || ''
     };
-
-    const colaActual = EmailQueueService.obtenerCola();
-    const nuevaCola = [nuevoJob, ...colaActual];
-    EmailQueueService.guardarCola(nuevaCola);
-    return nuevoJob;
   },
 
-  reintentarTrabajo: (jobId) => {
-    const cola = EmailQueueService.obtenerCola().map((job) => {
-      if (job.id === jobId) {
-        return {
-          ...job,
-          estado: 'EN_COLA',
-          intentos: 0,
-          errorDetalle: null,
-          simularError: false
-        };
-      }
-      return job;
+  construirUrlGmail: ({ destinatario = '', asunto = '', cuerpo = '' } = {}) => {
+    const params = new URLSearchParams({
+      view: 'cm',
+      fs: '1',
+      to: destinatario.trim(),
+      su: asunto,
+      body: cuerpo
     });
-    return EmailQueueService.guardarCola(cola);
+    return `https://mail.google.com/mail/?${params.toString()}`;
   },
 
-  eliminarTrabajo: (jobId) => {
-    const cola = EmailQueueService.obtenerCola().filter((job) => job.id !== jobId);
-    return EmailQueueService.guardarCola(cola);
+  abrirEnGmail: ({ destinatario = '', asunto = '', cuerpo = '' } = {}) => {
+    const urlGmail = EmailQueueService.construirUrlGmail({
+      destinatario,
+      asunto,
+      cuerpo
+    });
+    if (typeof window !== 'undefined' && typeof window.open === 'function') {
+      window.open(urlGmail, '_blank', 'noopener,noreferrer');
+    }
+    return urlGmail;
   },
 
-  limpiarEnviados: () => {
-    const cola = EmailQueueService.obtenerCola().filter((job) => job.estado !== 'ENVIADO');
-    return EmailQueueService.guardarCola(cola);
+  /**
+   * Sincronizado con EmailService.enviarConfirmacionCita(destinatario, nombrePaciente, doctor, fechaHora)
+   * Genera el correo con body por defecto de la plantilla (o editado) y lo abre directamente en Gmail.
+   */
+  enviarConfirmacionCita: (
+    destinatario,
+    nombrePaciente,
+    doctor,
+    fechaHora,
+    opciones = {}
+  ) => {
+    const borrador = EmailQueueService.generarBorradorCorreo({
+      plantillaId: opciones.plantillaId || 'CONFIRMACION_CITA',
+      variables: {
+        destinatario,
+        nombrePaciente,
+        doctor,
+        fechaHora,
+        ...opciones
+      }
+    });
+
+    const asuntoFinal = opciones.asuntoPersonalizado ?? borrador.asunto;
+    const cuerpoFinal = opciones.cuerpoPersonalizado ?? borrador.cuerpo;
+    const destinatarioFinal = (opciones.destinatarioPersonalizado ?? borrador.destinatario) || '';
+
+    const urlGmail = EmailQueueService.construirUrlGmail({
+      destinatario: destinatarioFinal,
+      asunto: asuntoFinal,
+      cuerpo: cuerpoFinal
+    });
+
+    if (opciones.abrirGmail !== false) {
+      EmailQueueService.abrirEnGmail({
+        destinatario: destinatarioFinal,
+        asunto: asuntoFinal,
+        cuerpo: cuerpoFinal
+      });
+    }
+
+    return {
+      destinatario: destinatarioFinal,
+      nombrePaciente: borrador.nombrePaciente,
+      doctor: borrador.doctor,
+      fechaHora: borrador.fechaHora,
+      plantillaId: borrador.plantillaId,
+      asunto: asuntoFinal,
+      cuerpo: cuerpoFinal,
+      urlGmail
+    };
   }
 };

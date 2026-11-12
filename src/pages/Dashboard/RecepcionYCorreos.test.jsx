@@ -5,7 +5,7 @@ import Inicio from './Inicio';
 import CorreosNotificaciones from './CorreosNotificaciones';
 import { EmailQueueService } from '../../services/emailQueueService';
 
-describe('HU05-T02 & HU09-T01 - Recepción y Cola de Correos', () => {
+describe('HU05-T02 & HU09-T01 - Recepción y Módulo de Plantillas de Correo (Gmail)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
@@ -36,7 +36,7 @@ describe('HU05-T02 & HU09-T01 - Recepción y Cola de Correos', () => {
     });
   });
 
-  it('HU09-T01: Renderiza el configurador de plantillas de correo y encola envíos', async () => {
+  it('HU09-T01: Renderiza únicamente las plantillas de correo sin pestaña SMTP ni cola de envíos', async () => {
     render(
       <MemoryRouter>
         <CorreosNotificaciones />
@@ -46,14 +46,23 @@ describe('HU05-T02 & HU09-T01 - Recepción y Cola de Correos', () => {
     expect(screen.getByText(/Correos y Notificaciones/i)).toBeInTheDocument();
     expect(screen.getByText('Editor de Plantilla')).toBeInTheDocument();
     expect(screen.getByText('Vista Previa Renderizada')).toBeInTheDocument();
+    expect(screen.queryByText(/Cola de Envíos/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Servicio Externo \(SMTP\)/i)).not.toBeInTheDocument();
+  });
 
-    const colaAntes = EmailQueueService.obtenerCola().length;
-    fireEvent.click(screen.getByRole('button', { name: /Encolar Prueba/i }));
+  it('DFI-20: Genera el borrador con body por defecto y la URL directa hacia Gmail', () => {
+    const resultado = EmailQueueService.enviarConfirmacionCita(
+      'paciente@correo.com',
+      'Ana Sofía Hernández',
+      'Dra. Elena Solís',
+      '2026-11-15 a las 10:00 hrs',
+      { abrirGmail: false }
+    );
 
-    const colaDespues = EmailQueueService.obtenerCola().length;
-    expect(colaDespues).toBe(colaAntes + 1);
-
-    fireEvent.click(screen.getByRole('button', { name: /Cola de Envíos/i }));
-    expect(screen.getByRole('button', { name: /Despachar Siguiente Ahora/i })).toBeInTheDocument();
+    expect(resultado.destinatario).toBe('paciente@correo.com');
+    expect(resultado.cuerpo).toContain('Ana Sofía Hernández');
+    expect(resultado.cuerpo).toContain('Dra. Elena Solís');
+    expect(resultado.urlGmail).toContain('https://mail.google.com/mail/?');
+    expect(resultado.urlGmail).toContain('view=cm');
   });
 });

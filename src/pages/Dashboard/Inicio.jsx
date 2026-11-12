@@ -228,21 +228,30 @@ export default function Inicio() {
       const nombrePaciente = cita.paciente?.nombre
         ? `${cita.paciente.nombre} ${cita.paciente.apellidos || ''}`.trim()
         : cita.nombrePaciente || `Paciente #${idCita}`;
+      const destinatario = cita.paciente?.correo || 'paciente@dentalfine.com';
+      const doctor = cita.dentista?.nombre
+        ? `Dr(a). ${cita.dentista.nombre}`
+        : 'Especialista asignado';
+      const fechaStr = cita.fecha ? cita.fecha.split('T')[0] : strFechaSeleccionada;
+      const horaStr =
+        cita.fecha && cita.fecha.includes('T')
+          ? `${cita.fecha.split('T')[1].substring(0, 5)} hrs`
+          : '00:00 hrs';
 
-      EmailQueueService.encolarCorreo({
-        plantillaId: 'CANCELACION_CITA',
-        prioridad: 'ALTA',
-        variables: {
-          paciente: nombrePaciente,
-          correo: cita.paciente?.correo || 'paciente@dentalfine.com',
-          dentista: cita.dentista?.nombre ? `Dr(a). ${cita.dentista.nombre}` : 'Especialista asignado',
-          servicio: cita.tipoServicio?.nombre || 'Consulta Dental',
-          fecha: cita.fecha ? cita.fecha.split('T')[0] : strFechaSeleccionada,
-          hora: cita.fecha && cita.fecha.includes('T') ? `${cita.fecha.split('T')[1].substring(0, 5)} hrs` : '00:00 hrs',
+      EmailQueueService.enviarConfirmacionCita(
+        destinatario,
+        nombrePaciente,
+        doctor,
+        `${fechaStr} ${horaStr}`,
+        {
+          plantillaId: 'CANCELACION_CITA',
+          prioridad: 'ALTA',
+          citaId: idCita,
+          servicio: cita.tipoServicio?.nombre || cita.nombre || 'Cita Programada',
           folio: `#DF-${idCita}`,
           notas: 'Cancelación solicitada y registrada en recepción.'
         }
-      });
+      );
 
       setCitas((prev) =>
         prev.map((c) =>

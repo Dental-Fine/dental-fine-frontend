@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api'; // Asegúrate de importar la API
+import { EmailQueueService } from '../../services/emailQueueService';
 import { 
   Stethoscope, User, Calendar as CalendarIcon, 
   Clock, CheckCircle2, ChevronRight, ChevronLeft,
@@ -106,7 +107,23 @@ export const AgendarCita = () => {
       console.log("Enviando paquete al backend:", payload);
 
       // 3. Lo enviamos
-      await api.post('/citas/agendar', payload);
+      const respuesta = await api.post('/citas/agendar', payload);
+      const idCitaCreada = respuesta?.data?.idCita;
+
+      EmailQueueService.enviarConfirmacionCita(
+        usuarioLogueado?.correo || 'paciente@dentalfine.com',
+        usuarioLogueado?.nombre || 'Paciente Dental Fine',
+        datos.dentistaNombre ? `Dr(a). ${datos.dentistaNombre}` : 'Especialista Dental Fine',
+        `${datos.fecha} a las ${datos.hora} hrs`,
+        {
+          plantillaId: 'CONFIRMACION_CITA',
+          servicio: datos.servicioNombre || 'Cita Programada',
+          folio: `#DF-${idCitaCreada || Math.floor(100 + Math.random() * 900)}`,
+          notas: 'Cita agendada desde el Portal de Pacientes.',
+          abrirGmail: false
+        }
+      );
+
       setPaso(5); // Éxito!
     } catch (err) {
       setError(err.response?.data?.message || 'Hubo un error al confirmar la cita.');

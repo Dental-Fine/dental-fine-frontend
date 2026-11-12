@@ -9,7 +9,8 @@ import {
   FileText,
   Mail,
   AlertTriangle,
-  Loader2
+  Loader2,
+  FileCode
 } from 'lucide-react';
 import { ApiService } from '../../services/api';
 import { EmailQueueService } from '../../services/emailQueueService';
@@ -17,34 +18,68 @@ import { EmailQueueService } from '../../services/emailQueueService';
 export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirmado }) {
   const [estadoResolucion, setEstadoResolucion] = useState('FINALIZADA');
   const [notasRecepcion, setNotasRecepcion] = useState('');
-  const [enviarCorreoAsync, setEnviarCorreoAsync] = useState(true);
+  const [enviarCorreoGmail, setEnviarCorreoGmail] = useState(true);
+  const [plantillas, setPlantillas] = useState([]);
+  const [plantillaId, setPlantillaId] = useState('RESUMEN_ATENCION');
+  const [correoDestinatario, setCorreoDestinatario] = useState('');
+  const [asuntoCorreo, setAsuntoCorreo] = useState('');
+  const [cuerpoCorreo, setCuerpoCorreo] = useState('');
+  const [edicionManualCorreo, setEdicionManualCorreo] = useState(false);
+
   const [procesando, setProcesando] = useState(false);
   const [confirmadoExito, setConfirmadoExito] = useState(false);
 
   useEffect(() => {
     if (isOpen && cita) {
+      const lista = EmailQueueService.obtenerPlantillas().filter((p) => p.activa !== false);
+      setPlantillas(lista.length > 0 ? lista : EmailQueueService.obtenerPlantillas());
       setEstadoResolucion('FINALIZADA');
       setNotasRecepcion('Paciente asistió puntualmente. Consulta concluida.');
-      const config = EmailQueueService.obtenerConfiguracion();
-      setEnviarCorreoAsync(config.encolarAlConfirmarRecepcion !== false);
+      setEnviarCorreoGmail(true);
+      setPlantillaId('RESUMEN_ATENCION');
+      setCorreoDestinatario(cita.paciente?.correo || 'paciente@dentalfine.com');
+      setEdicionManualCorreo(false);
       setProcesando(false);
       setConfirmadoExito(false);
     }
   }, [isOpen, cita]);
 
-  if (!isOpen || !cita) return null;
-
-  const idCita = cita.id || cita.idCita;
-  const nombrePaciente = cita.paciente?.nombre
+  const idCita = cita?.id || cita?.idCita;
+  const nombrePaciente = cita?.paciente?.nombre
     ? `${cita.paciente.nombre} ${cita.paciente.apellidos || ''}`.trim()
-    : cita.nombrePaciente || `Paciente #${cita.idPaciente || cita.paciente?.id || idCita}`;
-  const correoPaciente = cita.paciente?.correo || 'paciente@dentalfine.com';
-  const nombreDentista = cita.dentista?.nombre
+    : cita?.nombrePaciente || `Paciente #${cita?.idPaciente || cita?.paciente?.id || idCita}`;
+  const correoPaciente = cita?.paciente?.correo || 'paciente@dentalfine.com';
+  const nombreDentista = cita?.dentista?.nombre
     ? `Dr(a). ${cita.dentista.nombre}`
-    : cita.nombreDentista || `Especialista #${cita.idDentista || cita.dentista?.id || '1'}`;
-  const nombreServicio = cita.tipoServicio?.nombre || cita.nombre || 'Consulta Dental Programada';
-  const fechaStr = cita.fecha ? cita.fecha.split('T')[0] : 'Fecha programada';
-  const horaStr = cita.fecha && cita.fecha.includes('T') ? cita.fecha.split('T')[1].substring(0, 5) : '00:00';
+    : cita?.nombreDentista || `Especialista #${cita?.idDentista || cita?.dentista?.id || '1'}`;
+  const nombreServicio =
+    cita?.tipoServicio?.nombre || cita?.nombre || 'Consulta Dental Programada';
+  const fechaStr = cita?.fecha ? cita.fecha.split('T')[0] : 'Fecha programada';
+  const horaStr =
+    cita?.fecha && cita.fecha.includes('T') ? cita.fecha.split('T')[1].substring(0, 5) : '00:00';
+
+  useEffect(() => {
+    if (!isOpen || !cita || edicionManualCorreo) return;
+    const borrador = EmailQueueService.generarBorradorCorreo({
+      plantillaId,
+      variables: {
+        nombrePaciente,
+        destinatario: correoDestinatario || correoPaciente,
+        doctor: nombreDentista,
+        servicio: nombreServicio,
+        fecha: fechaStr,
+        hora: `${horaStr} hrs`,
+        fechaHora: `${fechaStr} a las ${horaStr} hrs`,
+        clinica: 'Dental Fine - Clínica Central',
+        folio: `#DF-${idCita}`,
+        notas: notasRecepcion.trim() || 'Consulta finalizada satisfactoriamente.'
+      }
+    });
+    setAsuntoCorreo(borrador.asunto);
+    setCuerpoCorreo(borrador.cuerpo);
+  }, [isOpen, cita, plantillaId, notasRecepcion, edicionManualCorreo]);
+
+  if (!isOpen || !cita) return null;
 
   const notasRapidas =
     estadoResolucion === 'FINALIZADA'
@@ -71,22 +106,20 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
       });
 
       let jobCorreo = null;
-      if (enviarCorreoAsync && estadoResolucion === 'FINALIZADA') {
-        jobCorreo = EmailQueueService.encolarCorreo({
-          plantillaId: 'RESUMEN_ATENCION',
-          prioridad: 'ALTA',
-          variables: {
-            paciente: nombrePaciente,
-            correo: correoPaciente,
-            dentista: nombreDentista,
-            servicio: nombreServicio,
-            fecha: fechaStr,
-            hora: `${horaStr} hrs`,
-            clinica: 'Dental Fine - Clínica Central',
-            folio: `#DF-${idCita}`,
-            notas: notasRecepcion.trim() || 'Consulta finalizada satisfactoriamente.'
+      if (enviarCorreoGmail && estadoResolucion === 'FINALIZADA') {
+        jobCorreo = EmailQueueService.enviarConfirmacionCita(
+          correoDestinatario || correoPaciente,
+          nombrePaciente,
+          nombreDentista,
+          `${fechaStr} a las ${horaStr} hrs`,
+          {
+            plantillaId,
+            asuntoPersonalizado: asuntoCorreo,
+            cuerpoPersonalizado: cuerpoCorreo,
+            destinatarioPersonalizado: correoDestinatario || correoPaciente,
+            abrirGmail: true
           }
-        });
+        );
       }
 
       setConfirmadoExito(true);
@@ -261,7 +294,7 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
                   ))}
                 </div>
                 <textarea
-                  rows="3"
+                  rows="2"
                   value={notasRecepcion}
                   onChange={(e) => setNotasRecepcion(e.target.value)}
                   placeholder="Notas sobre la consulta o asistencia del paciente..."
@@ -269,25 +302,93 @@ export default function ModalConfirmacionCita({ isOpen, cita, onClose, onConfirm
                 />
               </div>
 
-              {/* NOTIFICACIÓN POR CORREO */}
+              {/* NOTIFICACIÓN POR GMAIL CON PLANTILLA Y BODY EDITABLE */}
               {estadoResolucion === 'FINALIZADA' && (
-                <label className="flex items-start gap-3 p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 cursor-pointer hover:bg-indigo-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={enviarCorreoAsync}
-                    onChange={(e) => setEnviarCorreoAsync(e.target.checked)}
-                    className="mt-1 h-4 w-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5 text-xs font-black text-indigo-950">
-                      <Mail size={14} className="text-indigo-600" />
-                      Enviar comprobante de atención por correo
+                <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-3">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enviarCorreoGmail}
+                      onChange={(e) => setEnviarCorreoGmail(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-indigo-950">
+                        <Mail size={14} className="text-indigo-600" />
+                        Enviar comprobante por Gmail al confirmar
+                      </div>
+                      <p className="text-[11px] text-indigo-700/80 mt-0.5">
+                        Selecciona una plantilla y edita el mensaje si deseas personalizarlo antes de enviarlo en Gmail.
+                      </p>
                     </div>
-                    <p className="text-[11px] text-indigo-700/80 mt-0.5">
-                      Se enviará automáticamente el resumen de la consulta a <span className="font-bold">{correoPaciente}</span>.
-                    </p>
-                  </div>
-                </label>
+                  </label>
+
+                  {enviarCorreoGmail && (
+                    <div className="space-y-3 pt-2 border-t border-indigo-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                            <FileCode size={12} className="text-indigo-600" /> Plantilla
+                          </label>
+                          <select
+                            value={plantillaId}
+                            onChange={(e) => {
+                              setPlantillaId(e.target.value);
+                              setEdicionManualCorreo(false);
+                            }}
+                            className="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                          >
+                            {plantillas.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-700">
+                            Destinatario
+                          </label>
+                          <input
+                            type="email"
+                            value={correoDestinatario}
+                            onChange={(e) => setCorreoDestinatario(e.target.value)}
+                            className="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-slate-700">Asunto</label>
+                        <input
+                          type="text"
+                          value={asuntoCorreo}
+                          onChange={(e) => {
+                            setAsuntoCorreo(e.target.value);
+                            setEdicionManualCorreo(true);
+                          }}
+                          className="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-slate-700">
+                          Mensaje / Cuerpo del Correo
+                        </label>
+                        <textarea
+                          rows="4"
+                          value={cuerpoCorreo}
+                          onChange={(e) => {
+                            setCuerpoCorreo(e.target.value);
+                            setEdicionManualCorreo(true);
+                          }}
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 leading-relaxed resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </form>
           )}
