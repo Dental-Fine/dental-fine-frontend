@@ -23,11 +23,13 @@ import { MiExpediente } from "../pages/Pacientes/MiExpediente";
 import { MisDocumentos } from "../pages/Pacientes/MisDocumentos";
 import { MisCitas } from "../pages/Citas/MisCitas";
 import { NuevaCita } from "../pages/Citas/NuevaCita";
+import { RutaProtegida } from "../components/RutaProtegida";
 
 export const AppRouter = () => {
     return (
         <BrowserRouter>
             <Routes>
+
                 <Route path="/" element={<Login />} />
                 <Route path="/login" element={<Login />} />
 
@@ -35,20 +37,22 @@ export const AppRouter = () => {
                 <Route path="/admin" element={<MainLayout />}>
                     <Route path="dashboard" element={<Inicio />} />
                     <Route path="gestor-clinico" element={<GestorClinico />} />
-                    <Route path="servicios" element={<Servicios />} /> 
+                    <Route path="servicios" element={<Servicios />} />
                     <Route path="expedientes" element={<Expedientes />} />
-                    <Route path="expediente/:id" element={<ExpedienteDetalle />} /> 
-                    <Route path="pagos" element={<Pagos />} /> 
+                    <Route path="expediente/:id" element={<ExpedienteDetalle />} />
+                    <Route path="pagos" element={<Pagos />} />
                     <Route path="correos" element={<CorreosNotificaciones />} />
                 </Route>
 
                 {/* Rutas del Paciente */}
-                <Route path="/paciente/inicio" element={<PortalPacienteLayout><DashboardPaciente /></PortalPacienteLayout>} />
-                <Route path="/paciente/citas" element={<PortalPacienteLayout><MisCitas /></PortalPacienteLayout>} />
-                <Route path="/paciente/perfil" element={<PortalPacienteLayout><PerfilPaciente /></PortalPacienteLayout>} />
-                <Route path="/paciente/agendar" element={<PortalPacienteLayout><NuevaCita /></PortalPacienteLayout>} />
-                <Route path="/paciente/expediente" element={<PortalPacienteLayout><MiExpediente /></PortalPacienteLayout>} />
-                <Route path="/paciente/documentos" element={<PortalPacienteLayout><MisDocumentos /></PortalPacienteLayout>} />
+                <Route element={<RutaProtegida />}>
+                    <Route path="/paciente/inicio" element={<PortalPacienteLayout><DashboardPaciente /></PortalPacienteLayout>} />
+                    <Route path="/paciente/citas" element={<PortalPacienteLayout><MisCitas /></PortalPacienteLayout>} />
+                    <Route path="/paciente/perfil" element={<PortalPacienteLayout><PerfilPaciente /></PortalPacienteLayout>} />
+                    <Route path="/paciente/agendar" element={<PortalPacienteLayout><NuevaCita /></PortalPacienteLayout>} />
+                    <Route path="/paciente/expediente" element={<PortalPacienteLayout><MiExpediente /></PortalPacienteLayout>} />
+                    <Route path="/paciente/documentos" element={<PortalPacienteLayout><MisDocumentos /></PortalPacienteLayout>} />
+                </Route>
 
                 {/* Ruta 404 - Redirección o Error */}
                 <Route path="*" element={<Navigate to="/login" replace />} />
