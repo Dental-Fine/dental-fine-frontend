@@ -193,16 +193,22 @@ export default function DashboardRecepcion() {
           
           // ✨ AQUÍ ESTÁ LA MAGIA: Si el modal nos mandó la hora nueva, la pintamos a la fuerza
           if (datosSimulados && citaAEditar) {
+            const info = datosSimulados.citaActualizada || datosSimulados;
             setCitas(citasActuales => citasActuales.map(c => {
               const idC = c.id || c.idCita;
               const idE = citaAEditar.id || citaAEditar.idCita;
               if (idC === idE) {
-                return { ...c, fecha: datosSimulados.nuevaFechaHora };
+                return { 
+                  ...c, 
+                  ...info,
+                  fecha: info.nuevaFechaHora || info.fecha || c.fecha,
+                  nombreDentista: info.nombreDentista || c.nombreDentista,
+                  nombrePaciente: info.nombrePaciente || c.nombrePaciente
+                };
               }
               return c;
             }));
           } else {
-            // Si es una cita nueva normal, sí le preguntamos a la base de datos
             cargarCitasDelServidor(); 
           }
         }}

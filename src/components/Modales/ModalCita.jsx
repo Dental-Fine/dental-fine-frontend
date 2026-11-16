@@ -1,8 +1,24 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, Stethoscope, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { ApiService } from '../../services/api';
+import ModalEdicionCita from './ModalEdicionCita';
 
 export default function ModalCita({ isOpen, onClose, citaEditando }) {
+  // HU04-T01: Si se recibe una cita a editar, delegamos al modal especializado de edición
+  if (citaEditando) {
+    return (
+      <ModalEdicionCita
+        isOpen={isOpen}
+        onClose={(resultado) => {
+          if (onClose) onClose(resultado);
+        }}
+        cita={citaEditando}
+        onCitaActualizada={(actualizada) => {
+          if (onClose) onClose({ nuevaFechaHora: actualizada.fecha, ...actualizada });
+        }}
+      />
+    );
+  }
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [exito, setExito] = useState(false);

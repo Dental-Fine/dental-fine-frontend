@@ -50,10 +50,12 @@ api.interceptors.response.use(
     // Si es otro error (como 404 Not Found o 500 Server Error), se lo pasamos al componente
     return Promise.reject(error);
   }
-);const BASE_URL = 'http://localhost:8080';
+);
+
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const getHeaders = () => {
-  const token = localStorage.getItem('auth_token');
+  const token = localStorage.getItem('token_dental_fine') || localStorage.getItem('auth_token');
   return {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -164,6 +166,7 @@ export const ApiService = {
     return await response.json();
   },
 
+  // HU04-T02: Endpoint PUT /api/citas/{id}
   editarCita: async (idCita, pacienteId, dentistaId, tipoServicioId, fechaHora) => {
     const inicio = new Date(fechaHora);
     const fin = new Date(inicio.getTime() + 30 * 60000);
@@ -176,9 +179,39 @@ export const ApiService = {
       fechaHoraFin: formatISO(fin)
     };
 
-    const response = await fetch(`${BASE_URL}/citas/${idCita}/editar`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(payload) });
-    if (!response.ok) throw new Error(await response.text() || 'Error al actualizar la cita');
+    let response = await fetch(`${BASE_URL}/api/citas/${idCita}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok && response.status === 404) {
+      // Fallback a ruta alternativa si el backend expone /citas/{id}/editar
+      response = await fetch(`${BASE_URL}/citas/${idCita}/editar`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Error al actualizar la cita');
+    }
     return await response.json();
+  },
+
+  obtenerDisponibilidad: async (dentistaId, fecha) => {
+    try {
+      let res = await fetch(`${BASE_URL}/api/citas/disponibilidad?dentistaId=${dentistaId}&fecha=${fecha}`, { headers: getHeaders() });
+      if (!res.ok) {
+        res = await fetch(`${BASE_URL}/citas/disponibilidad?dentistaId=${dentistaId}&fecha=${fecha}`, { headers: getHeaders() });
+      }
+      if (res.ok) return await res.json();
+      return [];
+    } catch (e) {
+      return [];
+    }
   },
 
   cancelarCita: async (idCita) => {
