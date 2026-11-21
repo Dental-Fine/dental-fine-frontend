@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Activity, Calendar, Heart, AlertCircle, ClipboardList, Loader2, X, Plus } from 'lucide-react';
 import { ApiService } from '../../services/api.js';
+import { DICCIONARIO_DIENTES } from '../../components/ui/OdontogramaAnatomico';
 
-// --- COMPONENTE INTERNO: Diente Esquemático Original de 5 Caras ---
+// --- COMPONENTE INTERNO: Diente Esquemático Original de 5 Caras con Nombres Anatómicos ---
 function DienteEsquematico({ numero, condiciones = {}, onCaraClick }) {
+  const info = DICCIONARIO_DIENTES[numero] || { nombre: `Pieza ${numero}`, nombreCompleto: `Diente ${numero}` };
+
   const obtenerEstiloCara = (condicion) => {
     if (condicion === 'caries') return 'bg-red-500 border-red-600 z-10';
     if (condicion === 'resin' || condicion === 'resina') return 'bg-blue-500 border-blue-600 z-10';
@@ -24,8 +27,13 @@ function DienteEsquematico({ numero, condiciones = {}, onCaraClick }) {
   const condicionesDiente = condiciones[numero] || condiciones || {};
 
   return (
-    <div className="flex flex-col items-center gap-1 bg-white p-1 rounded-xl border border-slate-100 shadow-sm">
-      <span className="text-[10px] font-black text-slate-500 font-sans">{numero}</span>
+    <div 
+      className="flex flex-col items-center gap-1 bg-white p-1 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-300 transition-colors"
+      title={`${info.nombreCompleto} (Pieza ${numero})`}
+    >
+      <span className="text-[10px] font-black text-slate-700 text-center leading-tight max-w-[56px] truncate">
+        {info.nombre}
+      </span>
       <div className="relative w-11 h-11 border-2 border-slate-300 bg-slate-200 rounded-md overflow-hidden">
         {caras.map((cara) => {
           const estadoCara = condicionesDiente[cara.id];
@@ -36,11 +44,14 @@ function DienteEsquematico({ numero, condiciones = {}, onCaraClick }) {
               onClick={() => onCaraClick(numero, cara.id)}
               style={{ clipPath: cara.clip }}
               className={`absolute inset-0 border border-slate-300/40 transition-colors duration-150 ${obtenerEstiloCara(estadoCara)}`}
-              title={`Diente ${numero} - Cara ${cara.label}`}
+              title={`${info.nombre} - Cara ${cara.label} (#${numero})`}
             />
           );
         })}
       </div>
+      <span className="text-[9px] font-bold text-slate-400 font-mono px-1 rounded bg-slate-100">
+        #{numero}
+      </span>
     </div>
   );
 }

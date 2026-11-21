@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { ApiService } from '../../services/api';
 import { EmailQueueService } from '../../services/emailQueueService';
+import ModalEdicionCita from './ModalEdicionCita';
 
 const PACIENTES_RESPALDO = [
   { id: 1, nombre: 'María Fernanda', apellidos: 'López', correo: 'mfernanda.lopez@correo.com' },
@@ -35,6 +36,21 @@ const SERVICIOS_RESPALDO = [
 ];
 
 export default function ModalCita({ isOpen, onClose, citaEditando }) {
+  // HU04-T01: Si se recibe una cita a editar, delegamos al modal especializado de edición
+  if (citaEditando) {
+    return (
+      <ModalEdicionCita
+        isOpen={isOpen}
+        onClose={(resultado) => {
+          if (onClose) onClose(resultado);
+        }}
+        cita={citaEditando}
+        onCitaActualizada={(actualizada) => {
+          if (onClose) onClose({ nuevaFechaHora: actualizada.fecha, ...actualizada });
+        }}
+      />
+    );
+  }
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [exito, setExito] = useState(false);

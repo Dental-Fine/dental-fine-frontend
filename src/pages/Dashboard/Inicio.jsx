@@ -878,13 +878,34 @@ export default function Inicio() {
         </div>
       </div>
 
-      {/* Modal para Agendar o Reprogramar Citas */}
+      {/* Modal Reutilizable de Citas de tu proyecto (HU04-T01) */}
       <ModalCita
         isOpen={isModalOpen}
         citaEditando={citaAEditar}
         onClose={(resultado) => {
           setIsModalOpen(false);
-          if (resultado) cargarTodasLasCitas();
+          if (resultado) {
+            // Actualización inmediata en el estado de React para actualizar la tarjeta sin recargar la página
+            if (resultado.citaActualizada || resultado.nuevaFechaHora || resultado.id) {
+              const infoActualizada = resultado.citaActualizada || resultado;
+              const targetId = infoActualizada.id || infoActualizada.idCita || citaAEditar?.id || citaAEditar?.idCita;
+              
+              setCitas(prevCitas => prevCitas.map(c => {
+                const cId = c.id || c.idCita;
+                if (cId === targetId) {
+                  return {
+                    ...c,
+                    ...infoActualizada,
+                    fecha: infoActualizada.fecha || infoActualizada.nuevaFechaHora || c.fecha,
+                    fechaHoraInicio: infoActualizada.fechaHoraInicio || infoActualizada.nuevaFechaHora || c.fechaHoraInicio
+                  };
+                }
+                return c;
+              }));
+            }
+            // Sincronización en background
+            cargarTodasLasCitas();
+          }
         }}
       />
 

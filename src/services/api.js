@@ -34,7 +34,8 @@ api.interceptors.response.use(
   },
   (error) => {
     // Si el backend dice "401 Unauthorized" o "403 Forbidden" (El token expiró o falta)
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    const esRutaLogin = error.config?.url?.includes('/auth/login');
+    if (error.response && (error.response.status === 401 || error.response.status === 403) && !esRutaLogin) {
       console.warn("Sesión expirada o token inválido. Expulsando usuario...");
       
       // 1. Destruimos la sesión local
@@ -54,7 +55,7 @@ api.interceptors.response.use(
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const getHeaders = () => {
-  const token = localStorage.getItem('auth_token') || localStorage.getItem('token_dental_fine');
+  const token = localStorage.getItem('token_dental_fine') || localStorage.getItem('auth_token');
   return {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -225,6 +226,7 @@ export const ApiService = {
     return await response.json();
   },
 
+  // HU04-T02: Endpoint PUT /api/citas/{id}
   editarCita: async (idCita, pacienteId, dentistaId, tipoServicioId, fechaHora) => {
     const inicio = new Date(fechaHora);
     const fin = new Date(inicio.getTime() + 30 * 60000);
@@ -237,9 +239,39 @@ export const ApiService = {
       fechaHoraFin: formatISO(fin)
     };
 
-    const response = await fetch(`${BASE_URL}/citas/${idCita}/editar`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(payload) });
-    if (!response.ok) throw new Error(await response.text() || 'Error al actualizar la cita');
+    let response = await fetch(`${BASE_URL}/api/citas/${idCita}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok && response.status === 404) {
+      // Fallback a ruta alternativa si el backend expone /citas/{id}/editar
+      response = await fetch(`${BASE_URL}/citas/${idCita}/editar`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Error al actualizar la cita');
+    }
     return await response.json();
+  },
+
+  obtenerDisponibilidad: async (dentistaId, fecha) => {
+    try {
+      let res = await fetch(`${BASE_URL}/api/citas/disponibilidad?dentistaId=${dentistaId}&fecha=${fecha}`, { headers: getHeaders() });
+      if (!res.ok) {
+        res = await fetch(`${BASE_URL}/citas/disponibilidad?dentistaId=${dentistaId}&fecha=${fecha}`, { headers: getHeaders() });
+      }
+      if (res.ok) return await res.json();
+      return [];
+    } catch (e) {
+      return [];
+    }
   },
 
   cancelarCita: async (idCita) => {
