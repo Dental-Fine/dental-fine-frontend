@@ -1,17 +1,20 @@
 import axios from 'axios';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080', 
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
+// 1. Interceptor de Peticiones (Request)
+// Se ejecuta ANTES de que la peticiÃ³n salga hacia el Backend.
+// Su trabajo es buscar el Token y "pegÃ¡rselo" a la peticiÃ³n.
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token_dental_fine');
+    const token = localStorage.getItem('token_dental_fine') || localStorage.getItem('auth_token');
     if (token) {
-      // El estÃ¡ndar de seguridad es mandarlo como "Bearer [token]"
+      // El estándar de seguridad es mandarlo como "Bearer [token]"
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -21,23 +24,30 @@ api.interceptors.request.use(
   }
 );
 
+// 2. Interceptor de Respuestas (Response)
+// Se ejecuta cuando el Backend nos contesta, ANTES de llegar a tus componentes.
+// Su trabajo es atrapar los errores de sesión a nivel global.
 api.interceptors.response.use(
   (response) => {
+    // Si la respuesta fue exitosa (200 OK, 201 Created), la deja pasar normal
     return response;
   },
   (error) => {
-    const esRutaLogin = error.config.url.includes('/auth/login');
+    // Si el backend dice "401 Unauthorized" o "403 Forbidden" (El token expiró o falta)
+    const esRutaLogin = error.config?.url?.includes('/auth/login');
     if (error.response && (error.response.status === 401 || error.response.status === 403) && !esRutaLogin) {
-      console.warn("SesiÃ³n expirada o token invÃ¡lido. Expulsando usuario...");
-
+      console.warn("Sesión expirada o token inválido. Expulsando usuario...");
+      
+      // 1. Destruimos la sesión local
       localStorage.removeItem('token_dental_fine');
-      localStorage.removeItem('usuario_dental_fine');
       localStorage.removeItem('auth_token');
-
-
+      localStorage.removeItem('usuario_dental_fine');
+      
+      // 2. Lo mandamos a la calle (Login). 
       window.location.href = '/';
     }
-
+    
+    // Si es otro error (como 404 Not Found o 500 Server Error), se lo pasamos al componente
     return Promise.reject(error);
   }
 );
@@ -61,30 +71,30 @@ export const ApiService = {
     if (!response.ok) throw new Error('Error al obtener pacientes');
     return await response.json();
   },
-
+  
   buscarPacientes: async (query) => {
     const res = await ApiService.obtenerPacientes();
-    return res.filter(p => (p.nombre + " " + (p.apellidos || '')).toLowerCase().includes(query.toLowerCase()) || String(p.id).includes(query));
+    return res.filter(p => (p.nombre + " " + (p.apellidos||'')).toLowerCase().includes(query.toLowerCase()) || String(p.id).includes(query));
   },
-
+  
   obtenerPacientePorId: async (id) => {
     const response = await fetch(`${BASE_URL}/pacientes/${id}`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Error al obtener paciente');
     return await response.json();
   },
-
+  
   crearPaciente: async (datos) => {
     const response = await fetch(`${BASE_URL}/pacientes`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(datos) });
     if (!response.ok) throw new Error(await response.text());
     return await response.json();
   },
-
+  
   actualizarPaciente: async (id, datos) => {
     const response = await fetch(`${BASE_URL}/pacientes/${id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(datos) });
     if (!response.ok) throw new Error(await response.text());
     return await response.json();
   },
-
+  
   eliminarPaciente: async (id) => {
     const response = await fetch(`${BASE_URL}/pacientes/${id}`, { method: 'DELETE', headers: getHeaders() });
     if (!response.ok) throw new Error('Error al eliminar');
@@ -129,14 +139,74 @@ export const ApiService = {
   },
 
   // === CITAS ===
+  obtenerHistorialConfirmacionesLocal: () => {
+    try {
+      return JSON.parse(localStorage.getItem('citas_historial_recepcion_v1') || '{}');
+    } catch (e) {
+      return {};
+    }
+  },
+
   obtenerCitas: async () => {
-    const response = await fetch(`${BASE_URL}/citas`, { headers: getHeaders() });
-    if (!response.ok) {
-      console.error("Error al obtener citas. Status:", response.status);
-      try { console.error(await response.text()); } catch (e) { }
+    try {
+      const response = await fetch(`${BASE_URL}/citas`, { headers: getHeaders() });
+      if (!response.ok) {
+        console.error("Error al obtener citas. Status:", response.status);
+        try { console.error(await response.text()); } catch(e){}
+        return [];
+      }
+      const data = await response.json();
+      const historialLocal = ApiService.obtenerHistorialConfirmacionesLocal();
+      return (data || []).map((c) => {
+        const idCita = String(c.id || c.idCita);
+        if (historialLocal[idCita]) {
+          return {
+            ...c,
+            ...historialLocal[idCita]
+          };
+        }
+        return c;
+      });
+    } catch (error) {
+      console.error("Error de red al obtener citas:", error);
       return [];
     }
-    return await response.json();
+  },
+
+  confirmarCita: async (idCita, datosConfirmacion = {}) => {
+    const estadoFinal = datosConfirmacion.estado || 'FINALIZADA';
+    const registroConfirmacion = {
+      estado: estadoFinal,
+      notasRecepcion: datosConfirmacion.notasRecepcion || '',
+      horaConfirmacion: datosConfirmacion.horaConfirmacion || new Date().toISOString(),
+      confirmadoPor: datosConfirmacion.confirmadoPor || 'Recepción Dental Fine',
+      trasladadoAHistorial: true
+    };
+
+    // Intentar sincronizar con el backend si expone el endpoint de estado
+    try {
+      await fetch(`${BASE_URL}/citas/${idCita}/estado?estado=${encodeURIComponent(estadoFinal)}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(registroConfirmacion)
+      });
+    } catch (e) {
+      console.warn("Sincronización local de confirmación aplicada:", e);
+    }
+
+    // Persistir estado de confirmación y traslado al historial en localStorage
+    const actual = ApiService.obtenerHistorialConfirmacionesLocal();
+    actual[String(idCita)] = registroConfirmacion;
+    localStorage.setItem('citas_historial_recepcion_v1', JSON.stringify(actual));
+
+    return { id: idCita, ...registroConfirmacion };
+  },
+
+  revertirCitaAAgenda: async (idCita) => {
+    const actual = ApiService.obtenerHistorialConfirmacionesLocal();
+    delete actual[String(idCita)];
+    localStorage.setItem('citas_historial_recepcion_v1', JSON.stringify(actual));
+    return { id: idCita, estado: 'PENDIENTE', trasladadoAHistorial: false };
   },
 
   agendarCita: async (pacienteId, dentistaId, tipoServicioId, fechaHora) => {
@@ -147,7 +217,7 @@ export const ApiService = {
     const payload = {
       pacienteId: parseInt(pacienteId),
       dentistaId: parseInt(dentistaId),
-      fechaHoraInicio: fechaHora,
+      fechaHoraInicio: fechaHora, 
       fechaHoraFin: formatISO(fin)
     };
 
@@ -165,7 +235,7 @@ export const ApiService = {
     const payload = {
       pacienteId: parseInt(pacienteId),
       dentistaId: parseInt(dentistaId),
-      fechaHoraInicio: fechaHora,
+      fechaHoraInicio: fechaHora, 
       fechaHoraFin: formatISO(fin)
     };
 
@@ -208,7 +278,7 @@ export const ApiService = {
     const response = await fetch(`${BASE_URL}/citas/${idCita}/cancelar`, {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify({ rolUsuario: "ROLE_RECEPCION", motivoCancelacion: "Cancelación desde Recepción" })
+      body: JSON.stringify({ rolUsuario: "ROLE_RECEPCION", motivoCancelacion: "Cancelación desde Recepción" }) 
     });
     if (!response.ok) throw new Error('Error al cancelar');
     return await response.json();
@@ -234,29 +304,29 @@ export const ApiService = {
   },
 
   crearServicio: async (datos) => {
-    const response = await fetch(`${BASE_URL}/servicios`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(datos)
+    const response = await fetch(`${BASE_URL}/servicios`, { 
+      method: 'POST', 
+      headers: getHeaders(), 
+      body: JSON.stringify(datos) 
     });
     if (!response.ok) throw new Error(await response.text());
     return await response.json();
   },
 
   actualizarServicio: async (id, datos) => {
-    const response = await fetch(`${BASE_URL}/servicios/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(datos)
+    const response = await fetch(`${BASE_URL}/servicios/${id}`, { 
+      method: 'PUT', 
+      headers: getHeaders(), 
+      body: JSON.stringify(datos) 
     });
     if (!response.ok) throw new Error(await response.text());
     return await response.json();
   },
 
   eliminarServicio: async (id) => {
-    const response = await fetch(`${BASE_URL}/servicios/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
+    const response = await fetch(`${BASE_URL}/servicios/${id}`, { 
+      method: 'DELETE', 
+      headers: getHeaders() 
     });
     if (!response.ok) throw new Error('Error al eliminar');
     return true;
