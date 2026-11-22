@@ -4,6 +4,7 @@ import {
   Loader2, CheckCircle2, Calendar, MapPin, Users, PhoneCall 
 } from 'lucide-react';
 import { ApiService } from '../../services/api';
+import { descomponerDireccion, componerDireccion } from './ModalConfiguracionExpediente.jsx';
 
 export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGuardarExitoso }) {
   const [cargando, setCargando] = useState(false);
@@ -17,7 +18,16 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
   const [correo, setCorreo] = useState('');
   const [fechaNacimiento, setFechaNacimiento] = useState('');
   const [sexo, setSexo] = useState('MASCULINO');
-  const [direccion, setDireccion] = useState('');
+  
+  // Dirección estructurada NOM-004
+  const [direccionPartes, setDireccionPartes] = useState({
+    calle: '',
+    colonia: '',
+    codigoPostal: '',
+    municipio: '',
+    estado: ''
+  });
+
   const [contactoEmergenciaNombre, setContactoEmergenciaNombre] = useState('');
   const [contactoEmergenciaTelefono, setContactoEmergenciaTelefono] = useState('');
   const [tipoSanguineo, setTipoSanguineo] = useState('O+');
@@ -33,7 +43,7 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
       setCorreo(pacienteEditando.correo || '');
       setFechaNacimiento(pacienteEditando.fechaNacimiento || '');
       setSexo(pacienteEditando.sexo || 'MASCULINO');
-      setDireccion(pacienteEditando.direccion || '');
+      setDireccionPartes(descomponerDireccion(pacienteEditando.direccion || ''));
       setContactoEmergenciaNombre(pacienteEditando.contactoEmergenciaNombre || '');
       setContactoEmergenciaTelefono(pacienteEditando.contactoEmergenciaTelefono || '');
       setTipoSanguineo(pacienteEditando.tipoSanguineo || 'O+');
@@ -47,7 +57,7 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
       setCorreo('');
       setFechaNacimiento('');
       setSexo('MASCULINO');
-      setDireccion('');
+      setDireccionPartes({ calle: '', colonia: '', codigoPostal: '', municipio: '', estado: '' });
       setContactoEmergenciaNombre('');
       setContactoEmergenciaTelefono('');
       setTipoSanguineo('O+');
@@ -58,10 +68,17 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
     setExito(false);
   }, [isOpen, pacienteEditando]);
 
+  const handleDireccionChange = (e) => {
+    const { name, value } = e.target;
+    setDireccionPartes(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setCargando(true);
     setError('');
+
+    const direccionFinal = componerDireccion(direccionPartes);
 
     // Estructura de datos completa alineada con NOM-004 y entidades Spring Boot
     const datosPaciente = {
@@ -71,7 +88,7 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
       correo,
       fechaNacimiento: fechaNacimiento || null,
       sexo,
-      direccion,
+      direccion: direccionFinal,
       contactoEmergenciaNombre,
       contactoEmergenciaTelefono,
       tipoSanguineo,
@@ -99,7 +116,7 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
           enfermedadesCronicas: antecedentes,
           fechaNacimiento: fechaNacimiento || null,
           sexo,
-          direccion,
+          direccion: direccionFinal,
           contactoEmergenciaNombre,
           contactoEmergenciaTelefono
         });
@@ -200,9 +217,37 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
                   </select>
                 </div>
 
+              </div>
+
+              {/* DOMICILIO ESTRUCTURADO NOM-004 */}
+              <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-100 pb-2 pt-2">
+                Domicilio del Paciente (NOM-004)
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2"><MapPin size={16} /> Domicilio Completo (Calle, Número, Colonia, CP)</label>
-                  <input type="text" placeholder="Ej. Av. Hidalgo #123, Col. Centro, CP 38980" value={direccion} onChange={e => setDireccion(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-indigo-600 text-sm" />
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2"><MapPin size={16} /> Calle y Número (Ext./Int.) *</label>
+                  <input type="text" placeholder="Ej. Av. Hidalgo #123 Int. 4" name="calle" value={direccionPartes.calle} onChange={handleDireccionChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-indigo-600 text-sm" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Colonia / Fraccionamiento</label>
+                  <input type="text" placeholder="Ej. Centro" name="colonia" value={direccionPartes.colonia} onChange={handleDireccionChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-indigo-600 text-sm" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Código Postal (5 dígitos)</label>
+                  <input type="text" maxLength={5} placeholder="Ej. 38980" name="codigoPostal" value={direccionPartes.codigoPostal} onChange={handleDireccionChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-indigo-600 text-sm font-mono" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Municipio o Alcaldía</label>
+                  <input type="text" placeholder="Ej. Uriangato" name="municipio" value={direccionPartes.municipio} onChange={handleDireccionChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-indigo-600 text-sm" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Estado / Entidad Federativa</label>
+                  <input type="text" placeholder="Ej. Guanajuato" name="estado" value={direccionPartes.estado} onChange={handleDireccionChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-indigo-600 text-sm" />
                 </div>
               </div>
 

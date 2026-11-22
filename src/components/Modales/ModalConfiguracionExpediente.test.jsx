@@ -94,7 +94,7 @@ describe('ModalConfiguracionExpediente (DFI-42) - Pruebas NOM-004 y NOM-013', ()
 
     expect(screen.getByLabelText(/Nombre Completo del Contacto/i)).toHaveValue('María Gómez');
     expect(screen.getByLabelText(/Teléfono de Emergencia/i)).toHaveValue('7779876543');
-    expect(screen.getByLabelText(/Domicilio Completo/i)).toHaveValue('Av. Morelos #100, Cuernavaca');
+    expect(screen.getByLabelText(/Calle y Número/i)).toHaveValue('Av. Morelos #100');
   });
 
   it('Envía los datos correctamente mediante ApiService.actualizarSaludGeneral', async () => {

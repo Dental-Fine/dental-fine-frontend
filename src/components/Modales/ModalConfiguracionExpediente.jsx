@@ -6,6 +6,55 @@ import {
 } from 'lucide-react';
 import { ApiService } from '../../services/api.js';
 
+export function descomponerDireccion(direccionCompleta = '') {
+  if (!direccionCompleta) {
+    return { calle: '', colonia: '', codigoPostal: '', municipio: '', estado: '' };
+  }
+
+  const partes = direccionCompleta.split(',').map(p => p.trim());
+  let calle = '';
+  let colonia = '';
+  let codigoPostal = '';
+  let municipio = '';
+  let estado = '';
+
+  const matchCP = direccionCompleta.match(/C\.?P\.?\s*(\d{5})/i) || direccionCompleta.match(/\b(\d{5})\b/);
+  if (matchCP) {
+    codigoPostal = matchCP[1];
+  }
+
+  const matchCol = direccionCompleta.match(/Col(?:onia)?\.?\s*([^,]+)/i);
+  if (matchCol) {
+    colonia = matchCol[1].trim();
+  }
+
+  if (partes.length >= 4) {
+    calle = partes[0] || '';
+    if (!colonia && partes[1]) colonia = partes[1].replace(/^Col\.?\s*/i, '');
+    municipio = partes[partes.length - 2] || '';
+    estado = partes[partes.length - 1] || '';
+  } else if (partes.length === 1) {
+    calle = partes[0];
+  } else {
+    calle = partes[0] || '';
+    if (partes.length > 1 && !colonia) colonia = partes[1];
+    if (partes.length > 2 && !municipio) municipio = partes[2];
+    if (partes.length > 3 && !estado) estado = partes[3];
+  }
+
+  return { calle, colonia, codigoPostal, municipio, estado };
+}
+
+export function componerDireccion({ calle = '', colonia = '', codigoPostal = '', municipio = '', estado = '' }) {
+  const partes = [];
+  if (calle && calle.trim()) partes.push(calle.trim());
+  if (colonia && colonia.trim()) partes.push(`Col. ${colonia.trim()}`);
+  if (codigoPostal && codigoPostal.trim()) partes.push(`C.P. ${codigoPostal.trim()}`);
+  if (municipio && municipio.trim()) partes.push(municipio.trim());
+  if (estado && estado.trim()) partes.push(estado.trim());
+  return partes.join(', ');
+}
+
 export default function ModalConfiguracionExpediente({
   isOpen,
   onClose,
@@ -16,6 +65,15 @@ export default function ModalConfiguracionExpediente({
   const [tabActiva, setTabActiva] = useState('alertas'); // 'identificacion' | 'alertas'
   const [guardando, setGuardando] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Partes descompuestas de la dirección (NOM-004)
+  const [direccionPartes, setDireccionPartes] = useState({
+    calle: '',
+    colonia: '',
+    codigoPostal: '',
+    municipio: '',
+    estado: ''
+  });
 
   // Estado del Formulario
   const [formData, setFormData] = useState({
@@ -42,10 +100,13 @@ export default function ModalConfiguracionExpediente({
 
   useEffect(() => {
     if (paciente || expediente) {
+      const direccionInicial = paciente?.direccion || '';
+      setDireccionPartes(descomponerDireccion(direccionInicial));
+
       setFormData({
         fechaNacimiento: paciente?.fechaNacimiento || '',
         sexo: paciente?.sexo || 'MASCULINO',
-        direccion: paciente?.direccion || '',
+        direccion: direccionInicial,
         contactoEmergenciaNombre: paciente?.contactoEmergenciaNombre || '',
         contactoEmergenciaTelefono: paciente?.contactoEmergenciaTelefono || '',
 
@@ -75,6 +136,16 @@ export default function ModalConfiguracionExpediente({
     }));
   };
 
+  const handleDireccionPartesChange = (e) => {
+    const { name, value } = e.target;
+    setDireccionPartes(prev => {
+      const actualizadas = { ...prev, [name]: value };
+      const direccionCompleta = componerDireccion(actualizadas);
+      setFormData(f => ({ ...f, direccion: direccionCompleta }));
+      return actualizadas;
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!paciente?.id && !paciente?.idPaciente) {
@@ -86,16 +157,20 @@ export default function ModalConfiguracionExpediente({
     setErrorMsg('');
 
     const pacienteId = paciente.id || paciente.idPaciente;
+    const direccionFinal = componerDireccion(direccionPartes);
+    const payload = {
+      ...formData,
+      direccion: direccionFinal
+    };
 
     try {
-      const expedienteActualizado = await ApiService.actualizarSaludGeneral(pacienteId, formData);
+      const expedienteActualizado = await ApiService.actualizarSaludGeneral(pacienteId, payload);
 
-      // Si también se actualizaron campos de identificación del paciente, creamos objeto actualizado
       const pacienteActualizado = {
         ...paciente,
         fechaNacimiento: formData.fechaNacimiento,
         sexo: formData.sexo,
-        direccion: formData.direccion,
+        direccion: direccionFinal,
         contactoEmergenciaNombre: formData.contactoEmergenciaNombre,
         contactoEmergenciaTelefono: formData.contactoEmergenciaTelefono,
         tipoSanguineo: formData.tipoSanguineo
@@ -139,33 +214,35 @@ export default function ModalConfiguracionExpediente({
           </button>
         </div>
 
-        {/* PESTAÑAS NAVEGACIÓN */}
-        <div className="flex border-b border-slate-200 bg-slate-50 px-6 pt-3 gap-2">
-          <button
-            type="button"
-            onClick={() => setTabActiva('alertas')}
-            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
-              tabActiva === 'alertas'
-                ? 'border-indigo-600 text-indigo-600 bg-white rounded-t-xl border-t border-x border-slate-200 shadow-sm'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <ShieldAlert size={16} className={tabActiva === 'alertas' ? 'text-indigo-600' : 'text-slate-400'} />
-            Alertas Médicas y Odontológicas (NOM-013)
-          </button>
+        {/* PESTAÑAS NAVEGACIÓN - SEGMENTED CONTROL */}
+        <div className="px-6 pt-5 pb-1 bg-white">
+          <div className="flex p-1.5 bg-slate-100 rounded-2xl gap-2 border border-slate-200/80">
+            <button
+              type="button"
+              onClick={() => setTabActiva('alertas')}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                tabActiva === 'alertas'
+                  ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/60'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <ShieldAlert size={16} className={tabActiva === 'alertas' ? 'text-indigo-600' : 'text-slate-400'} />
+              Alertas Médicas y Odontológicas (NOM-013)
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setTabActiva('identificacion')}
-            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
-              tabActiva === 'identificacion'
-                ? 'border-indigo-600 text-indigo-600 bg-white rounded-t-xl border-t border-x border-slate-200 shadow-sm'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <UserCheck size={16} className={tabActiva === 'identificacion' ? 'text-indigo-600' : 'text-slate-400'} />
-            Ficha de Identificación y Emergencia (NOM-004)
-          </button>
+            <button
+              type="button"
+              onClick={() => setTabActiva('identificacion')}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                tabActiva === 'identificacion'
+                  ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/60'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <UserCheck size={16} className={tabActiva === 'identificacion' ? 'text-indigo-600' : 'text-slate-400'} />
+              Ficha de Identificación y Emergencia (NOM-004)
+            </button>
+          </div>
         </div>
 
         {/* MENSAJE DE ERROR */}
@@ -454,22 +531,89 @@ export default function ModalConfiguracionExpediente({
                 </div>
               </div>
 
-              {/* DIRECCIÓN */}
-              <div>
-                <label htmlFor="direccion" className="block text-xs font-bold text-slate-700 mb-1">
-                  Domicilio Completo (Calle, Número, Colonia, Código Postal)
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 text-slate-400" size={16} />
-                  <input
-                    id="direccion"
-                    type="text"
-                    name="direccion"
-                    value={formData.direccion}
-                    onChange={handleChange}
-                    placeholder="Ej. Av. Hidalgo #123, Col. Centro, Uriangato, Gto. CP 38980"
-                    className="w-full pl-9 rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
+              {/* DOMICILIO ESTRUCTURADO NOM-004 */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                <p className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <MapPin size={14} className="text-indigo-600" />
+                  Domicilio del Paciente (NOM-004)
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <label htmlFor="calle" className="block text-xs font-bold text-slate-700 mb-1">
+                      Calle y Número (Ext./Int.) *
+                    </label>
+                    <input
+                      id="calle"
+                      type="text"
+                      name="calle"
+                      value={direccionPartes.calle}
+                      onChange={handleDireccionPartesChange}
+                      placeholder="Ej. Av. Hidalgo #123 Int. 4"
+                      className="w-full rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="colonia" className="block text-xs font-bold text-slate-700 mb-1">
+                      Colonia / Fraccionamiento
+                    </label>
+                    <input
+                      id="colonia"
+                      type="text"
+                      name="colonia"
+                      value={direccionPartes.colonia}
+                      onChange={handleDireccionPartesChange}
+                      placeholder="Ej. Centro"
+                      className="w-full rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="codigoPostal" className="block text-xs font-bold text-slate-700 mb-1">
+                      Código Postal (5 dígitos)
+                    </label>
+                    <input
+                      id="codigoPostal"
+                      type="text"
+                      maxLength={5}
+                      name="codigoPostal"
+                      value={direccionPartes.codigoPostal}
+                      onChange={handleDireccionPartesChange}
+                      placeholder="Ej. 38980"
+                      className="w-full rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="municipio" className="block text-xs font-bold text-slate-700 mb-1">
+                      Municipio o Alcaldía
+                    </label>
+                    <input
+                      id="municipio"
+                      type="text"
+                      name="municipio"
+                      value={direccionPartes.municipio}
+                      onChange={handleDireccionPartesChange}
+                      placeholder="Ej. Uriangato"
+                      className="w-full rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="estado" className="block text-xs font-bold text-slate-700 mb-1">
+                      Estado / Entidad Federativa
+                    </label>
+                    <input
+                      id="estado"
+                      type="text"
+                      name="estado"
+                      value={direccionPartes.estado}
+                      onChange={handleDireccionPartesChange}
+                      placeholder="Ej. Guanajuato"
+                      className="w-full rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                    />
+                  </div>
                 </div>
               </div>
 
