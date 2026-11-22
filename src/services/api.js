@@ -117,13 +117,17 @@ export const ApiService = {
     return await response.json();
   },
 
-  actualizarSaludGeneral: async (pacienteId, alergias, tipoSanguineo, enfermedadesCronicas) => {
+  actualizarSaludGeneral: async (pacienteId, datosOAlergias, tipoSanguineo, enfermedadesCronicas) => {
+    const payload = typeof datosOAlergias === 'object' && datosOAlergias !== null
+      ? datosOAlergias
+      : { alergias: datosOAlergias, tipoSanguineo, enfermedadesCronicas };
+
     const response = await fetch(`${BASE_URL}/expedientes/paciente/${pacienteId}/salud-general`, {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify({ alergias, tipoSanguineo, enfermedadesCronicas })
+      body: JSON.stringify(payload)
     });
-    if (!response.ok) throw new Error('Error al actualizar salud general');
+    if (!response.ok) throw new Error('Error al actualizar expediente clínico');
     return await response.json();
   },
 

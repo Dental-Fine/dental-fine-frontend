@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Activity, Calendar, Heart, AlertCircle, ClipboardList, Loader2, X, Plus } from 'lucide-react';
+import { 
+  ArrowLeft, Activity, Calendar, Heart, AlertCircle, ClipboardList, 
+  Loader2, X, Plus, Settings, ShieldAlert, PhoneCall, AlertTriangle, 
+  UserCheck, MapPin, Shield
+} from 'lucide-react';
 import { ApiService } from '../../services/api.js';
 import { DICCIONARIO_DIENTES } from '../../components/ui/OdontogramaAnatomico';
+import ModalConfiguracionExpediente from '../../components/Modales/ModalConfiguracionExpediente.jsx';
 
 // --- COMPONENTE INTERNO: Diente Esquemático Original de 5 Caras con Nombres Anatómicos ---
 function DienteEsquematico({ numero, condiciones = {}, onCaraClick }) {
@@ -61,10 +66,12 @@ export default function ExpedienteDetalle() {
   const navigate = useNavigate();
   
   const [paciente, setPaciente] = useState(null);
+  const [expediente, setExpediente] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [nuevaNota, setNuevaNota] = useState('');
   
   // Estructura de odontograma segura por diente y cara
@@ -95,6 +102,7 @@ export default function ExpedienteDetalle() {
           encontrado.tipoSanguineo = expedienteReal.tipoSanguineo;
           encontrado.enfermedadesCronicas = expedienteReal.enfermedadesCronicas;
           
+          setExpediente(expedienteReal);
           setEvoluciones(expedienteReal.evoluciones || []);
           
           const estadoInicial = expedienteReal.odontograma?.estadoDientes;
@@ -105,6 +113,7 @@ export default function ExpedienteDetalle() {
           }
         } catch (expError) {
           console.warn("El paciente no tiene un expediente inicializado en backend.");
+          setExpediente(null);
           setEvoluciones([]);
           setOdontograma({});
         }
@@ -118,6 +127,17 @@ export default function ExpedienteDetalle() {
     } finally {
       setCargando(false);
     }
+  };
+
+  const handleExpedienteActualizado = (expedienteActualizado, pacienteActualizado) => {
+    setExpediente(expedienteActualizado);
+    setPaciente(prev => ({
+      ...prev,
+      ...pacienteActualizado,
+      alergias: expedienteActualizado?.alergias || prev?.alergias,
+      tipoSanguineo: expedienteActualizado?.tipoSanguineo || prev?.tipoSanguineo,
+      enfermedadesCronicas: expedienteActualizado?.enfermedadesCronicas || prev?.enfermedadesCronicas
+    }));
   };
 
   const handleCaraClick = async (numeroDiente, caraId) => {
@@ -219,38 +239,155 @@ export default function ExpedienteDetalle() {
     <div className="flex-1 p-8 overflow-y-auto bg-slate-50 h-screen animate-in fade-in duration-500 font-sans">
       
       {/* HEADER */}
-      <div className="flex items-center gap-4 mb-6">
-        <button 
-          onClick={() => navigate('/admin/expedientes')}
-          className="p-3 bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-2xl transition-colors shadow-sm"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Expediente Clínico Integrado</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Control perimetral anatómico e historial de intervenciones.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => navigate('/admin/expedientes')}
+            className="p-3 bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-2xl transition-colors shadow-sm"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Expediente Clínico Integrado</h1>
+            <p className="text-sm text-slate-500 mt-0.5">Control perimetral anatómico y normativo NOM-004-SSA3-2012 / NOM-013-SSA2-2015.</p>
+          </div>
         </div>
+
+        <button
+          onClick={() => setIsConfigModalOpen(true)}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white rounded-2xl font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+        >
+          <Settings size={18} />
+          Configurar Expediente (NOM-004)
+        </button>
       </div>
 
       {/* FICHA PERFIL */}
-      <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-6 mb-8 grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
-        <div className="md:col-span-2">
-          <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">Paciente Seleccionado</span>
-          <h2 className="text-2xl font-extrabold text-slate-900 mt-0.5">{paciente?.nombre} {paciente?.apellidos}</h2>
-          <p className="text-sm text-slate-400 font-medium mt-1">Celular: {paciente?.telefono || 'N/A'} | {paciente?.correo}</p>
-        </div>
-        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center"><Heart size={20}/></div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Factor RH</p>
-            <p className="text-sm font-black text-slate-800">{paciente?.tipoSanguineo || 'O+'}</p>
+      <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm p-6 mb-8 flex flex-col gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+          <div className="md:col-span-2">
+            <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">Paciente Seleccionado</span>
+            <h2 className="text-2xl font-extrabold text-slate-900 mt-0.5">{paciente?.nombre} {paciente?.apellidos}</h2>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 font-medium mt-1">
+              <span>Celular: {paciente?.telefono || 'N/A'}</span>
+              <span>•</span>
+              <span>{paciente?.correo}</span>
+              {paciente?.fechaNacimiento && (
+                <>
+                  <span>•</span>
+                  <span>Nacimiento: {paciente?.fechaNacimiento}</span>
+                </>
+              )}
+              {paciente?.sexo && (
+                <>
+                  <span>•</span>
+                  <span>Sexo: {paciente?.sexo}</span>
+                </>
+              )}
+            </div>
+            {paciente?.direccion && (
+              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                <MapPin size={13} className="text-slate-400 shrink-0" />
+                <span>{paciente.direccion}</span>
+              </p>
+            )}
+            {paciente?.contactoEmergenciaNombre && (
+              <p className="text-xs text-slate-700 font-semibold mt-1 flex items-center gap-1">
+                <PhoneCall size={13} className="text-teal-600 shrink-0" />
+                <span>Emergencia: {paciente.contactoEmergenciaNombre} ({paciente.contactoEmergenciaTelefono || 'Sin teléfono'})</span>
+              </p>
+            )}
+          </div>
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0"><Heart size={20}/></div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Factor RH</p>
+              <p className="text-sm font-black text-slate-800">{expediente?.tipoSanguineo || paciente?.tipoSanguineo || 'O+'}</p>
+            </div>
+          </div>
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0"><AlertCircle size={20}/></div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Restricciones/Alergias</p>
+              <p className="text-sm font-black text-slate-800 truncate max-w-[140px]" title={expediente?.alergias || paciente?.alergias || 'Ninguna'}>
+                {expediente?.alergias || paciente?.alergias || 'Ninguna'}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center"><AlertCircle size={20}/></div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Restricciones/Alergias</p>
-            <p className="text-sm font-black text-slate-800 truncate max-w-[140px]">{paciente?.alergias || 'Ninguna'}</p>
+
+        {/* BANDERAS DE ALERTA MÉDICA NOM-013-SSA2-2015 */}
+        <div className="pt-4 border-t border-slate-100">
+          <div className="flex items-center gap-2 mb-2.5">
+            <ShieldAlert size={16} className="text-slate-700" />
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Alertas Estomatológicas y Riesgos Sistémicos (NOM-013)
+            </h4>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {expediente?.alergiaAnestesia && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-800 border border-red-300 rounded-full text-xs font-bold animate-pulse">
+                <AlertTriangle size={13} className="text-red-600" />
+                PELIGRO: Alergia a Anestésicos Locales (Evitar Lidocaína/Mepivacaína)
+              </span>
+            )}
+            {expediente?.problemasCoagulacion && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-800 border border-red-300 rounded-full text-xs font-bold">
+                <AlertTriangle size={13} className="text-red-600" />
+                ALERTA: Coagulopatía / Anticoagulantes (Riesgo de Hemorragia)
+              </span>
+            )}
+            {expediente?.cardiopatias && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-100 text-rose-800 border border-rose-300 rounded-full text-xs font-bold">
+                <Heart size={13} className="text-rose-600" />
+                ALERTA: Cardiopatía (Requiere Profilaxis Antibiótica)
+              </span>
+            )}
+            {expediente?.hipertension && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-full text-xs font-bold">
+                <AlertCircle size={13} className="text-amber-600" />
+                ALERTA: Hipertensión Arterial (Evitar vasoconstrictores / epinefrina)
+              </span>
+            )}
+            {expediente?.diabetes && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-full text-xs font-bold">
+                <AlertCircle size={13} className="text-amber-600" />
+                ALERTA: Diabetes Mellitus (Riesgo infeccioso y cicatrización)
+              </span>
+            )}
+            {expediente?.embarazo && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-800 border border-purple-300 rounded-full text-xs font-bold">
+                <AlertCircle size={13} className="text-purple-600" />
+                PRECAUCIÓN: Paciente en Embarazo (Restricción Rx y fármacos)
+              </span>
+            )}
+            {expediente?.alergiaLatex && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-100 text-orange-800 border border-orange-300 rounded-full text-xs font-bold">
+                <AlertCircle size={13} className="text-orange-600" />
+                ALERTA: Alergia al Látex (Usar instrumental y guantes de nitrilo)
+              </span>
+            )}
+
+            {!expediente?.alergiaAnestesia &&
+             !expediente?.problemasCoagulacion &&
+             !expediente?.cardiopatias &&
+             !expediente?.hipertension &&
+             !expediente?.diabetes &&
+             !expediente?.embarazo &&
+             !expediente?.alergiaLatex && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-medium">
+                <Shield size={13} className="text-emerald-600" />
+                Sin alertas sistémicas de alto riesgo registradas
+              </span>
+            )}
+
+            {expediente?.medicamentosActuales && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-xs font-medium">
+                <ClipboardList size={13} className="text-slate-500" />
+                Medicamentos: {expediente.medicamentosActuales}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -378,6 +515,15 @@ export default function ExpedienteDetalle() {
           </div>
         </div>
       )}
+
+      {/* MODAL CONFIGURACIÓN EXPEDIENTE NOM-004 / NOM-013 */}
+      <ModalConfiguracionExpediente
+        isOpen={isConfigModalOpen}
+        onClose={() => setIsConfigModalOpen(false)}
+        paciente={paciente}
+        expediente={expediente}
+        onGuardadoExitoso={handleExpedienteActualizado}
+      />
 
     </div>
   );

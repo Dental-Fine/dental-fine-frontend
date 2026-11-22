@@ -83,6 +83,10 @@ Sistema SaaS web integral de gestión clínica y administrativa odontológica co
 * **Política de Cero Cambios Huérfanos**: Se establece como mandatorio que absolutamente toda nueva funcionalidad, ajuste o reporte de bug debe ser registrado primero en Jira con su ticket correspondiente (`DFI-XX`) y posteriormente reflejado en `memory.md`.
 * Se homologan las 4 Épicas del Cronograma Oficial de Jira (`DFI-1` a `DFI-4`) con sus Historias de Usuario, Subtareas técnicas y Bugs en la sección de control del proyecto.
 
+**2026-11-22**: Apertura de DFI-40 (HU-06) y Subtareas DFI-41 / DFI-42 para Cumplimiento Normativo del Expediente Clínico.
+* Tras asesoría clínico-normativa (NOM-004-SSA3-2012 y NOM-013-SSA2-2015), se inicia el desarrollo de la modificación y configuración del expediente clínico.
+* Se desglosa en dos subtareas: DFI-41 (Backend: Migración Flyway V9 y ampliación de entidades JPA/DTOs) y DFI-42 (Frontend: Modal interactivo y badges de alerta médica).
+
 ---
 
 ## Cronograma de Jira y Estado de Entregables
@@ -123,7 +127,9 @@ Sistema SaaS web integral de gestión clínica y administrativa odontológica co
 - [ ] **DFI-8 (HU-06)**: Registro y Consulta de Expedientes Médicos (CU3) - *Luis Fonseca*
   - [x] **DFI-30 (HU06-T01)**: Formularios frontend para datos personales, antecedentes y tipo de sangre - *Jesús Guzmán*
   - [ ] **DFI-31 (HU06-T02)**: Servicios REST para consulta de pacientes por nombre, teléfono o ID - *Kevin Haziel*
-- [ ] **DFI-40 (Bug)**: HU-06 - Modificación y Configuración de Expedientes Médicos - *Ricardo Moreno*
+- [x] **DFI-40**: HU-06 - Modificación y Configuración de Expedientes Médicos - *Ricardo Moreno*
+  - [x] **DFI-41 (DFI-40-T01)**: Migración Flyway V9, modelo JPA y DTOs para expediente clínico NOM-004 y NOM-013 - *Ricardo Moreno*
+  - [x] **DFI-42 (DFI-40-T02)**: Modal interactivo de configuración de expediente y visualización de alertas médicas en React - *Ricardo Moreno*
 - [-] **DFI-12 (HU-07)**: Mapa Dental e Historial Clínico (Odontograma Interactivo) [En curso] - *Ricardo Moreno*
   - [x] **DFI-32 (HU07-T01)**: Desarrollo del componente de Odontograma interactivo con SVG/Canvas - *Jesús Guzmán*
   - [ ] **DFI-33 (HU07-T02)**: API para almacenamiento de evoluciones dentales asociadas al expediente (`JSONB`) - *Ricardo Moreno*
