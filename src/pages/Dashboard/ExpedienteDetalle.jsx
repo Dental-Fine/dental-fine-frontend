@@ -73,6 +73,10 @@ export default function ExpedienteDetalle() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [nuevaNota, setNuevaNota] = useState('');
+  const [piezaDental, setPiezaDental] = useState('');
+  const [procedimiento, setProcedimiento] = useState('');
+  const [fechaRegistro, setFechaRegistro] = useState(new Date().toISOString().split('T')[0]);
+  const [guardandoNota, setGuardandoNota] = useState(false);
   
   // Estructura de odontograma segura por diente y cara
   const [odontograma, setOdontograma] = useState({});
@@ -185,26 +189,40 @@ export default function ExpedienteDetalle() {
     }
 
     try {
-      // 1. Obtener citas del paciente para usar el ID real (regla del backend)
-      const citasTodas = await ApiService.obtenerCitas();
-      const idPacienteString = String(paciente.id || paciente.idPaciente);
-      const citasDelPaciente = citasTodas.filter(c => String(c.paciente?.id) === idPacienteString);
+      setGuardandoNota(true);
 
-      if (citasDelPaciente.length === 0) {
-        alert("El paciente debe tener al menos una cita agendada en el sistema para poder registrarle una nota clínica.");
-        return;
+      // Intentar asociar la cita más reciente si existe, pero no bloquear si no tiene citas agendadas
+      let idCitaValida = null;
+      try {
+        const citasTodas = await ApiService.obtenerCitas();
+        const idPacienteString = String(paciente.id || paciente.idPaciente);
+        const citasDelPaciente = (citasTodas || []).filter(c => String(c.paciente?.id) === idPacienteString);
+        if (citasDelPaciente.length > 0) {
+          idCitaValida = citasDelPaciente[citasDelPaciente.length - 1].id;
+        }
+      } catch (errCitas) {
+        console.warn("No se pudieron cargar citas para asociar, se guardará como evolución directa:", errCitas);
       }
 
-      // 2. Usar el ID de su cita más reciente
-      const idCitaValida = citasDelPaciente[citasDelPaciente.length - 1].id;
+      const payloadEvolucion = {
+        citaId: idCitaValida,
+        notasClinicas: nuevaNota.trim(),
+        piezaDental: piezaDental.trim() || null,
+        procedimiento: procedimiento.trim() || null,
+        fechaRegistro: fechaRegistro || new Date().toISOString().split('T')[0]
+      };
 
-      const evolucionGuardada = await ApiService.agregarEvolucion(paciente.expedienteId, idCitaValida, nuevaNota);
+      const evolucionGuardada = await ApiService.agregarEvolucion(paciente.expedienteId, payloadEvolucion);
       setEvoluciones([evolucionGuardada, ...evoluciones]);
       setNuevaNota('');
+      setPiezaDental('');
+      setProcedimiento('');
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error al guardar la nota", error);
       alert("Hubo un error al guardar la nota clínica en el servidor.");
+    } finally {
+      setGuardandoNota(false);
     }
   };
 
@@ -462,12 +480,34 @@ export default function ExpedienteDetalle() {
           <div className="space-y-4 flex-1 overflow-y-auto max-h-[45vh] pr-1 custom-scrollbar">
             {evoluciones && evoluciones.length > 0 ? (
               evoluciones.map((evo) => (
-                <div key={evo.id || evo.idEvolucion} className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-2 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
-                    <Calendar size={12}/>
-                    {evo.fechaRegistro || evo.fecha || 'Fecha actual'}
+                <div key={evo.id || evo.idEvolucion} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                      <Calendar size={13} className="text-indigo-600" />
+                      <span>{evo.fechaRegistro || evo.fecha || 'Fecha actual'}</span>
+                      {evo.dentistaNombre && (
+                        <>
+                          <span>•</span>
+                          <span className="text-slate-700 font-semibold">{evo.dentistaNombre}</span>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {evo.piezaDental && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black uppercase">
+                          Pieza: {evo.piezaDental}
+                        </span>
+                      )}
+                      {evo.procedimiento && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-slate-200/80 text-slate-800 text-[10px] font-bold">
+                          {evo.procedimiento}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-slate-700 text-sm font-medium mt-1.5 leading-relaxed">
+
+                  <p className="text-slate-700 text-sm font-medium leading-relaxed">
                     {evo.notasClinicas || evo.descripcion}
                   </p>
                 </div>
@@ -490,26 +530,84 @@ export default function ExpedienteDetalle() {
           <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
               <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
-                <ClipboardList size={18} className="text-indigo-600"/> Registrar Nota
+                <ClipboardList size={18} className="text-indigo-600"/> Registrar Nota de Evolución
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
+              <button onClick={() => setIsModalOpen(false)} className="p-1 text-slate-400 hover:bg-slate-100 rounded-full transition-colors cursor-pointer">
                 <X size={20}/>
               </button>
             </div>
             <form onSubmit={handleGuardarNota} className="p-6 space-y-4">
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Pieza Dental (FDI)
+                  </label>
+                  <input
+                    type="text"
+                    value={piezaDental}
+                    onChange={(e) => setPiezaDental(e.target.value)}
+                    placeholder="Ej. 16, 21, General..."
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-600 text-sm font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Fecha de Evolución
+                  </label>
+                  <input
+                    type="date"
+                    value={fechaRegistro}
+                    onChange={(e) => setFechaRegistro(e.target.value)}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-600 text-sm font-medium"
+                  />
+                </div>
+              </div>
+
               <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Procedimiento Odontológico
+                </label>
+                <input
+                  type="text"
+                  value={procedimiento}
+                  onChange={(e) => setProcedimiento(e.target.value)}
+                  placeholder="Ej. Obturación con Resina, Profilaxis, Endodoncia..."
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-600 text-sm font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Notas Clínicas y Observaciones *
+                </label>
                 <textarea 
                   rows="4" 
                   required
                   value={nuevaNota}
                   onChange={(e) => setNuevaNota(e.target.value)}
-                  placeholder="Detalles de la consulta..."
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-indigo-600 resize-none text-sm leading-relaxed"
+                  placeholder="Describa el diagnóstico, técnica anestésica, hallazgos o indicaciones..."
+                  className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-indigo-600 resize-none text-sm leading-relaxed"
                 />
               </div>
+
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 py-3 rounded-xl text-sm">Cancelar</button>
-                <button type="submit" className="flex-1 font-bold text-white bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl shadow-lg text-sm">Guardar Nota</button>
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)} 
+                  disabled={guardandoNota}
+                  className="flex-1 font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 py-3 rounded-xl text-sm transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={guardandoNota}
+                  className="flex-1 font-bold text-white bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl shadow-md shadow-indigo-600/20 text-sm transition cursor-pointer disabled:opacity-50"
+                >
+                  {guardandoNota ? 'Guardando...' : 'Guardar Evolución'}
+                </button>
               </div>
             </form>
           </div>

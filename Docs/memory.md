@@ -83,9 +83,17 @@ Sistema SaaS web integral de gestión clínica y administrativa odontológica co
 * **Política de Cero Cambios Huérfanos**: Se establece como mandatorio que absolutamente toda nueva funcionalidad, ajuste o reporte de bug debe ser registrado primero en Jira con su ticket correspondiente (`DFI-XX`) y posteriormente reflejado en `memory.md`.
 * Se homologan las 4 Épicas del Cronograma Oficial de Jira (`DFI-1` a `DFI-4`) con sus Historias de Usuario, Subtareas técnicas y Bugs en la sección de control del proyecto.
 
-**2026-11-22**: Apertura de DFI-40 (HU-06) y Subtareas DFI-41 / DFI-42 para Cumplimiento Normativo del Expediente Clínico.
-* Tras asesoría clínico-normativa (NOM-004-SSA3-2012 y NOM-013-SSA2-2015), se inicia el desarrollo de la modificación y configuración del expediente clínico.
-* Se desglosa en dos subtareas: DFI-41 (Backend: Migración Flyway V9 y ampliación de entidades JPA/DTOs) y DFI-42 (Frontend: Modal interactivo y badges de alerta médica).
+**2026-11-22**: Apertura y Cierre de DFI-40 (HU-06) y Subtareas DFI-41 / DFI-42 para Cumplimiento Normativo del Expediente Clínico.
+* Tras asesoría clínico-normativa (NOM-004-SSA3-2012 y NOM-013-SSA2-2015), se completó el desarrollo de la modificación y configuración del expediente clínico.
+* DFI-41 (Backend: Migración Flyway V9 y ampliación de entidades JPA/DTOs con recepción de ficha NOM-004 en alta de paciente).
+* DFI-42 (Frontend: Modal interactivo, Segmented Control en pestañas, captura estructurada de 5 campos de domicilio y etiquetas limpias sin ruido normativo).
+
+**2026-11-22**: DFI-33 (HU07-T02) Implementación de API de Evoluciones Dentales y Desacoplamiento de Cita.
+* Se implementaron los endpoints `POST /expedientes/{id}/evolucion` y `GET /expedientes/{id}/evoluciones` en Spring Boot.
+* Se desacopló la obligatoriedad de tener una cita agendada (`citaId` opcional/nullable) permitiendo notas clínicas libres en cualquier momento.
+* Se agregó soporte para registrar pieza dental FDI, procedimiento odontológico y dentista tratante mediante el DTO inmutable `EvolucionTratamientoDTO`.
+* En frontend (`ExpedienteDetalle.jsx` y `api.js`), se enriqueció el modal de "Registrar Nota de Evolución" y la visualización de la línea de tiempo clínica con badges de pieza, procedimiento y doctor.
+* Pruebas unitarias de backend (`ExpedienteClinicoServiceTest`: 4/4) y frontend (12/12) aprobadas al 100%.
 
 ---
 
@@ -130,8 +138,8 @@ Sistema SaaS web integral de gestión clínica y administrativa odontológica co
 - [x] **DFI-40**: HU-06 - Modificación y Configuración de Expedientes Médicos - *Ricardo Moreno*
   - [x] **DFI-41 (DFI-40-T01)**: Migración Flyway V9, modelo JPA y DTOs para expediente clínico NOM-004 y NOM-013 - *Ricardo Moreno*
   - [x] **DFI-42 (DFI-40-T02)**: Modal interactivo de configuración de expediente y visualización de alertas médicas en React - *Ricardo Moreno*
-- [-] **DFI-12 (HU-07)**: Mapa Dental e Historial Clínico (Odontograma Interactivo) [En curso] - *Ricardo Moreno*
+- [x] **DFI-12 (HU-07)**: Mapa Dental e Historial Clínico (Odontograma Interactivo) - *Ricardo Moreno*
   - [x] **DFI-32 (HU07-T01)**: Desarrollo del componente de Odontograma interactivo con SVG/Canvas - *Jesús Guzmán*
-  - [ ] **DFI-33 (HU07-T02)**: API para almacenamiento de evoluciones dentales asociadas al expediente (`JSONB`) - *Ricardo Moreno*
+  - [x] **DFI-33 (HU07-T02)**: API para almacenamiento de evoluciones dentales asociadas al expediente (`JSONB`) - *Ricardo Moreno*
 - [ ] **DFI-14 (HU-10)**: Registro Transaccional de Pagos y Corte de Caja - *Kevin Haziel*
   - [ ] **DFI-35 (HU10-T01)**: Desarrollo de módulo de previsualización de cobro y registro de auditoría de cierre (Fase 1 Ticket/DetalleTicket) - *Sin asignar*

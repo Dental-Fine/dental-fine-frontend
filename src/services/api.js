@@ -107,13 +107,30 @@ export const ApiService = {
     return await response.json();
   },
 
-  agregarEvolucion: async (expedienteId, citaId, notasClinicas) => {
+  agregarEvolucion: async (expedienteId, datosEvolucion, legacyNotas) => {
+    let payload;
+    if (typeof datosEvolucion === 'object' && datosEvolucion !== null) {
+      payload = datosEvolucion;
+    } else {
+      payload = { citaId: datosEvolucion, notasClinicas: legacyNotas };
+    }
     const response = await fetch(`${BASE_URL}/expedientes/${expedienteId}/evolucion`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ citaId, notasClinicas })
+      body: JSON.stringify(payload)
     });
-    if (!response.ok) throw new Error('Error al agregar evolución');
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || 'Error al agregar evolución');
+    }
+    return await response.json();
+  },
+
+  obtenerEvoluciones: async (expedienteId) => {
+    const response = await fetch(`${BASE_URL}/expedientes/${expedienteId}/evoluciones`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Error al obtener evoluciones');
     return await response.json();
   },
 
