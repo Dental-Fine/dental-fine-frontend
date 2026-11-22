@@ -95,6 +95,10 @@ Sistema SaaS web integral de gestión clínica y administrativa odontológica co
 * En frontend (`ExpedienteDetalle.jsx` y `api.js`), se enriqueció el modal de "Registrar Nota de Evolución" y la visualización de la línea de tiempo clínica con badges de pieza, procedimiento y doctor.
 * Pruebas unitarias de backend (`ExpedienteClinicoServiceTest`: 4/4) y frontend (12/12) aprobadas al 100%.
 
+**2026-11-22**: Integración Oficial a la Rama `develop` y Apertura de HU-07 (Fase 2) en Jira.
+* Se integraron y desplegaron mediante Fast-Forward las ramas `feat/DFI-40-configuracion-expedientes` y `feat/DFI-33-evoluciones-dentales` sobre la rama `develop` en ambos repositorios (`dental-fine-backend` y `dental-fine-frontend`), sincronizando con `origin/develop`.
+* Se definieron y registraron en Jira las Historias de Usuario para el Odontograma Fase 2 (Inicial inmutable vs Evolutivo, dentición infantil con Kevin Haziel en Backend y Luis Fonseca en Frontend) y la mejora de autocompletado de códigos postales SEPOMEX.
+
 ---
 
 ## Cronograma de Jira y Estado de Entregables
@@ -141,5 +145,11 @@ Sistema SaaS web integral de gestión clínica y administrativa odontológica co
 - [x] **DFI-12 (HU-07)**: Mapa Dental e Historial Clínico (Odontograma Interactivo) - *Ricardo Moreno*
   - [x] **DFI-32 (HU07-T01)**: Desarrollo del componente de Odontograma interactivo con SVG/Canvas - *Jesús Guzmán*
   - [x] **DFI-33 (HU07-T02)**: API para almacenamiento de evoluciones dentales asociadas al expediente (`JSONB`) - *Ricardo Moreno*
+- [ ] **HU-07 (Fase 2)**: Odontograma Inicial vs Evolutivo, Dentición Temporal y Simbología Clínica Ampliada - *Kevin Haziel & Luis Fonseca*
+  - [ ] **HU07-F2-T01**: Migración Flyway, modelo JPA y endpoints para Odontograma Inicial, Evolutivo y Dentición Temporal - *Kevin Haziel*
+  - [ ] **HU07-F2-T02**: Componente de Odontograma con conmutador adulto/infantil, paleta de simbología extendida y comparativa - *Luis Fonseca*
+- [ ] **HU-10 (Enhancement)**: Autocompletado y validación de domicilio mediante catálogo de códigos postales (SEPOMEX)
+  - [ ] **T01**: Integración de servicio frontend para consulta y autocompletado por código postal con fallback manual
+  - [ ] **T02**: Selector dinámico de colonias en modales de paciente y expediente
 - [ ] **DFI-14 (HU-10)**: Registro Transaccional de Pagos y Corte de Caja - *Kevin Haziel*
   - [ ] **DFI-35 (HU10-T01)**: Desarrollo de módulo de previsualización de cobro y registro de auditoría de cierre (Fase 1 Ticket/DetalleTicket) - *Sin asignar*
