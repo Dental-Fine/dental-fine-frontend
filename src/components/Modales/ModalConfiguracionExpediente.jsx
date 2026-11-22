@@ -118,14 +118,14 @@ export default function ModalConfiguracionExpediente({
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
         
         {/* HEADER */}
-        <div className="px-6 py-5 bg-gradient-to-r from-teal-700 via-teal-800 to-slate-900 text-white flex items-center justify-between">
+        <div className="px-6 py-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-white/10 rounded-2xl backdrop-blur-md">
-              <Activity className="text-teal-200" size={24} />
+            <div className="p-2.5 bg-indigo-500/20 text-indigo-400 rounded-2xl backdrop-blur-md">
+              <Activity size={24} />
             </div>
             <div>
               <h3 className="text-lg font-bold">Configuración de Expediente Clínico</h3>
-              <p className="text-xs text-teal-200">
+              <p className="text-xs text-indigo-300">
                 Cumplimiento normativo NOM-004-SSA3-2012 y NOM-013-SSA2-2015 | {paciente?.nombre} {paciente?.apellidos}
               </p>
             </div>
@@ -133,7 +133,7 @@ export default function ModalConfiguracionExpediente({
           <button 
             onClick={onClose}
             disabled={guardando}
-            className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition"
+            className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -144,26 +144,26 @@ export default function ModalConfiguracionExpediente({
           <button
             type="button"
             onClick={() => setTabActiva('alertas')}
-            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
+            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
               tabActiva === 'alertas'
-                ? 'border-teal-600 text-teal-700 bg-white rounded-t-xl border-t border-x border-slate-200'
+                ? 'border-indigo-600 text-indigo-600 bg-white rounded-t-xl border-t border-x border-slate-200 shadow-sm'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            <ShieldAlert size={16} className={tabActiva === 'alertas' ? 'text-teal-600' : 'text-slate-400'} />
+            <ShieldAlert size={16} className={tabActiva === 'alertas' ? 'text-indigo-600' : 'text-slate-400'} />
             Alertas Médicas y Odontológicas (NOM-013)
           </button>
 
           <button
             type="button"
             onClick={() => setTabActiva('identificacion')}
-            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
+            className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
               tabActiva === 'identificacion'
-                ? 'border-teal-600 text-teal-700 bg-white rounded-t-xl border-t border-x border-slate-200'
+                ? 'border-indigo-600 text-indigo-600 bg-white rounded-t-xl border-t border-x border-slate-200 shadow-sm'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            <UserCheck size={16} className={tabActiva === 'identificacion' ? 'text-teal-600' : 'text-slate-400'} />
+            <UserCheck size={16} className={tabActiva === 'identificacion' ? 'text-indigo-600' : 'text-slate-400'} />
             Ficha de Identificación y Emergencia (NOM-004)
           </button>
         </div>
@@ -201,7 +201,7 @@ export default function ModalConfiguracionExpediente({
                     name="tipoSanguineo"
                     value={formData.tipoSanguineo}
                     onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
                   >
                     <option value="O+">O Positivo (O+)</option>
                     <option value="O-">O Negativo (O-)</option>
@@ -224,7 +224,7 @@ export default function ModalConfiguracionExpediente({
                     value={formData.alergias}
                     onChange={handleChange}
                     placeholder="Ej. Penicilina, Amoxicilina, Aspirina, Ibuprofeno..."
-                    className="w-full rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -384,7 +384,7 @@ export default function ModalConfiguracionExpediente({
                     onChange={handleChange}
                     rows={2}
                     placeholder="Ej. Losartán 50mg c/24h, Metformina 850mg..."
-                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
 
@@ -398,7 +398,7 @@ export default function ModalConfiguracionExpediente({
                     onChange={handleChange}
                     rows={2}
                     placeholder="Ej. Asma, insuficiencia renal, cirugía de bypass..."
-                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -431,7 +431,7 @@ export default function ModalConfiguracionExpediente({
                       name="fechaNacimiento"
                       value={formData.fechaNacimiento}
                       onChange={handleChange}
-                      className="w-full pl-9 rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      className="w-full pl-9 rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -445,7 +445,7 @@ export default function ModalConfiguracionExpediente({
                     name="sexo"
                     value={formData.sexo}
                     onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
                   >
                     <option value="MASCULINO">Masculino</option>
                     <option value="FEMENINO">Femenino</option>
@@ -468,7 +468,7 @@ export default function ModalConfiguracionExpediente({
                     value={formData.direccion}
                     onChange={handleChange}
                     placeholder="Ej. Av. Hidalgo #123, Col. Centro, Uriangato, Gto. CP 38980"
-                    className="w-full pl-9 rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full pl-9 rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -476,7 +476,7 @@ export default function ModalConfiguracionExpediente({
               {/* CONTACTO DE EMERGENCIA */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
                 <p className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                  <Phone size={14} className="text-teal-600" />
+                  <Phone size={14} className="text-indigo-600" />
                   Contacto Responsable de Emergencia (Obligatorio NOM-004)
                 </p>
 
@@ -492,7 +492,7 @@ export default function ModalConfiguracionExpediente({
                       value={formData.contactoEmergenciaNombre}
                       onChange={handleChange}
                       placeholder="Ej. María Moreno Salgado (Madre/Esposa)"
-                      className="w-full rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      className="w-full rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
 
@@ -507,7 +507,7 @@ export default function ModalConfiguracionExpediente({
                       value={formData.contactoEmergenciaTelefono}
                       onChange={handleChange}
                       placeholder="Ej. 4451234567"
-                      className="w-full rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 font-mono"
+                      className="w-full rounded-xl border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono"
                     />
                   </div>
                 </div>
@@ -530,7 +530,7 @@ export default function ModalConfiguracionExpediente({
             <button
               type="submit"
               disabled={guardando}
-              className="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow-md transition flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-600/20 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {guardando ? (
                 <>

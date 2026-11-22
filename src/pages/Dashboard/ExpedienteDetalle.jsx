@@ -255,7 +255,7 @@ export default function ExpedienteDetalle() {
 
         <button
           onClick={() => setIsConfigModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white rounded-2xl font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm shadow-md shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer"
         >
           <Settings size={18} />
           Configurar Expediente (NOM-004)
@@ -293,7 +293,7 @@ export default function ExpedienteDetalle() {
             )}
             {paciente?.contactoEmergenciaNombre && (
               <p className="text-xs text-slate-700 font-semibold mt-1 flex items-center gap-1">
-                <PhoneCall size={13} className="text-teal-600 shrink-0" />
+                <PhoneCall size={13} className="text-indigo-600 shrink-0" />
                 <span>Emergencia: {paciente.contactoEmergenciaNombre} ({paciente.contactoEmergenciaTelefono || 'Sin teléfono'})</span>
               </p>
             )}
