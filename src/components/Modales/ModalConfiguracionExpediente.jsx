@@ -201,7 +201,7 @@ export default function ModalConfiguracionExpediente({
             <div>
               <h3 className="text-lg font-bold">Configuración de Expediente Clínico</h3>
               <p className="text-xs text-indigo-300">
-                Cumplimiento normativo NOM-004-SSA3-2012 y NOM-013-SSA2-2015 | {paciente?.nombre} {paciente?.apellidos}
+                Expediente Clínico Dental | {paciente?.nombre} {paciente?.apellidos}
               </p>
             </div>
           </div>
@@ -227,7 +227,7 @@ export default function ModalConfiguracionExpediente({
               }`}
             >
               <ShieldAlert size={16} className={tabActiva === 'alertas' ? 'text-indigo-600' : 'text-slate-400'} />
-              Alertas Médicas y Odontológicas (NOM-013)
+              Alertas Médicas y Odontológicas
             </button>
 
             <button
@@ -240,7 +240,7 @@ export default function ModalConfiguracionExpediente({
               }`}
             >
               <UserCheck size={16} className={tabActiva === 'identificacion' ? 'text-indigo-600' : 'text-slate-400'} />
-              Ficha de Identificación y Emergencia (NOM-004)
+              Ficha de Identificación y Emergencia
             </button>
           </div>
         </div>
@@ -309,7 +309,7 @@ export default function ModalConfiguracionExpediente({
               {/* FACTORES DE RIESGO ODONTOLÓGICO (CHECKBOXES) */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
-                  Condiciones de Alto Riesgo en Sillón Dental (NOM-013)
+                  Condiciones de Alto Riesgo en Sillón Dental
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   
@@ -490,7 +490,7 @@ export default function ModalConfiguracionExpediente({
               <div className="p-3.5 bg-slate-100 border border-slate-200 rounded-2xl flex items-start gap-3">
                 <UserCheck className="text-slate-700 shrink-0 mt-0.5" size={18} />
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  <strong>Requerimiento NOM-004-SSA3-2012 (Numeral 5.1):</strong> La ficha de identificación clínica exige fecha de nacimiento para trazabilidad etaria, dirección verificable y un contacto responsable ante contingencias médicas.
+                  <strong>Ficha de Identificación Clínica:</strong> Datos requeridos para el perfil del paciente, domicilio y contacto responsable ante cualquier contingencia médica.
                 </p>
               </div>
 
@@ -531,11 +531,11 @@ export default function ModalConfiguracionExpediente({
                 </div>
               </div>
 
-              {/* DOMICILIO ESTRUCTURADO NOM-004 */}
+              {/* DOMICILIO ESTRUCTURADO */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
                 <p className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
                   <MapPin size={14} className="text-indigo-600" />
-                  Domicilio del Paciente (NOM-004)
+                  Domicilio del Paciente
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -621,7 +621,7 @@ export default function ModalConfiguracionExpediente({
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
                 <p className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
                   <Phone size={14} className="text-indigo-600" />
-                  Contacto Responsable de Emergencia (Obligatorio NOM-004)
+                  Contacto Responsable de Emergencia
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -684,7 +684,7 @@ export default function ModalConfiguracionExpediente({
               ) : (
                 <>
                   <Save size={16} />
-                  Guardar Cambios Normativos
+                  Guardar Cambios
                 </>
               )}
             </button>

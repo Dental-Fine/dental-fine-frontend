@@ -151,7 +151,7 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
             <h2 className="text-2xl font-bold text-slate-900">
               {pacienteEditando ? 'Modificar Expediente' : 'Registrar Nuevo Paciente'}
             </h2>
-            <p className="text-slate-500 text-sm mt-1">Ficha de identificación y clínica conforme a NOM-004-SSA3-2012.</p>
+            <p className="text-slate-500 text-sm mt-1">Ficha de identificación y antecedentes clínicos del paciente.</p>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors cursor-pointer">
             <X size={24} />
@@ -219,9 +219,9 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
 
               </div>
 
-              {/* DOMICILIO ESTRUCTURADO NOM-004 */}
+              {/* DOMICILIO ESTRUCTURADO */}
               <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-100 pb-2 pt-2">
-                Domicilio del Paciente (NOM-004)
+                Domicilio del Paciente
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -251,9 +251,9 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
                 </div>
               </div>
 
-              {/* CONTACTO DE EMERGENCIA NOM-004 */}
+              {/* CONTACTO DE EMERGENCIA */}
               <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-100 pb-2 pt-2">
-                Contacto Responsable de Emergencia (Obligatorio NOM-004)
+                Contacto Responsable de Emergencia
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -268,9 +268,9 @@ export default function ModalPaciente({ isOpen, onClose, pacienteEditando, onGua
                 </div>
               </div>
 
-              {/* HISTORIAL CLÍNICO NOM-013 */}
+              {/* HISTORIAL CLÍNICO INICIAL */}
               <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-100 pb-2 pt-2">
-                Historial Clínico Inicial (NOM-013)
+                Historial Clínico Inicial
               </h4>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

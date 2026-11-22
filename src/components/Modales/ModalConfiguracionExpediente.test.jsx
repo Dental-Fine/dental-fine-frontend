@@ -9,7 +9,7 @@ vi.mock('../../services/api.js', () => ({
   },
 }));
 
-describe('ModalConfiguracionExpediente (DFI-42) - Pruebas NOM-004 y NOM-013', () => {
+describe('ModalConfiguracionExpediente (DFI-42) - Pruebas de Configuración', () => {
   const mockPaciente = {
     id: 10,
     nombre: 'Carlos',
@@ -54,7 +54,7 @@ describe('ModalConfiguracionExpediente (DFI-42) - Pruebas NOM-004 y NOM-013', ()
     expect(container.firstChild).toBeNull();
   });
 
-  it('Renderiza correctamente la cabecera y alertas médicas NOM-013', () => {
+  it('Renderiza correctamente la cabecera y alertas médicas', () => {
     render(
       <ModalConfiguracionExpediente
         isOpen={true}
@@ -79,7 +79,7 @@ describe('ModalConfiguracionExpediente (DFI-42) - Pruebas NOM-004 y NOM-013', ()
     expect(checkDiabetes).not.toBeChecked();
   });
 
-  it('Cambia entre pestañas NOM-013 y NOM-004 Ficha de Identificación', () => {
+  it('Cambia entre pestañas de navegación', () => {
     render(
       <ModalConfiguracionExpediente
         isOpen={true}
@@ -120,7 +120,7 @@ describe('ModalConfiguracionExpediente (DFI-42) - Pruebas NOM-004 y NOM-013', ()
     fireEvent.click(checkHipertension);
     expect(checkHipertension).not.toBeChecked();
 
-    const botonGuardar = screen.getByRole('button', { name: /Guardar Cambios Normativos/i });
+    const botonGuardar = screen.getByRole('button', { name: /Guardar Cambios/i });
     fireEvent.click(botonGuardar);
 
     await waitFor(() => {

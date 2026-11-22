@@ -249,7 +249,7 @@ export default function ExpedienteDetalle() {
           </button>
           <div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Expediente Clínico Integrado</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Control perimetral anatómico y normativo NOM-004-SSA3-2012 / NOM-013-SSA2-2015.</p>
+            <p className="text-sm text-slate-500 mt-0.5">Control odontológico, alertas clínicas y ficha del paciente.</p>
           </div>
         </div>
 
@@ -258,7 +258,7 @@ export default function ExpedienteDetalle() {
           className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm shadow-md shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer"
         >
           <Settings size={18} />
-          Configurar Expediente (NOM-004)
+          Configurar Expediente
         </button>
       </div>
 
@@ -316,12 +316,12 @@ export default function ExpedienteDetalle() {
           </div>
         </div>
 
-        {/* BANDERAS DE ALERTA MÉDICA NOM-013-SSA2-2015 */}
+        {/* BANDERAS DE ALERTA MÉDICA */}
         <div className="pt-4 border-t border-slate-100">
           <div className="flex items-center gap-2 mb-2.5">
             <ShieldAlert size={16} className="text-slate-700" />
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Alertas Estomatológicas y Riesgos Sistémicos (NOM-013)
+              Alertas Médicas y Riesgos Sistémicos
             </h4>
           </div>
 
